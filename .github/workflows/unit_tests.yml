@@ -26,6 +26,11 @@ jobs:
       - name: Formatting
         run: find plugin/src plugin/include plugin/tests -name "*.cpp" -o -name "*.h" | xargs -r clang-format-19 -style=file --dry-run --Werror
 
+      - name: Install Dependencies
+        run: |
+          apt update
+          apt install -y ./qant-native-computing-toolkit.2.1.0-1-amd64.deb libdlpack-dev libxtensor-blas-dev xtensor-dev
+
       - name: Build docc
         run: |
           git config --global url."https://github.com/".insteadOf "git@github.com:"
