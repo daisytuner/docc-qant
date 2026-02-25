@@ -1,0 +1,47 @@
+include(FetchContent)
+FetchContent_Declare(
+  googletest
+  URL https://github.com/google/googletest/archive/5376968f6948923e2411081fd9372e71a59d8e77.zip
+)
+set(gtest_force_shared_crt ON CACHE BOOL "" FORCE)
+FetchContent_MakeAvailable(googletest)
+
+option(DOCC_TESTS_ENABLE_DUMP "Enable dumping intermediary files of test cases" OFF)
+
+set(TEST_FILES
+    # qant/blas/gemm_test.cpp
+    qant/einsum/einsum_test.cpp
+    qant/tensor/batchnorm_test.cpp
+    qant/tensor/conv_test.cpp
+    qant/tensor/matmul_test.cpp
+    qant/tensor/pooling_test.cpp
+    qant/tensor/relu_test.cpp
+    qant/tensor/sigmoid_test.cpp
+    so_compile.cpp
+    test.cpp
+)
+
+# Now simply link against gtest or gtest_main as needed. Eg
+add_executable(docc-qant-plugin_test ${TEST_FILES})
+target_link_libraries(docc-qant-plugin_test gtest_main docc-qant-plugin)
+target_include_directories(docc-qant-plugin_test PRIVATE ${CMAKE_CURRENT_SOURCE_DIR})
+get_filename_component(DOCC_PATHS_BIN ${CMAKE_CURRENT_BINARY_DIR}/../../3rdParty/docc ABSOLUTE)
+get_filename_component(DOCC_PATHS_SRC ${CMAKE_CURRENT_SOURCE_DIR}/../../3rdParty/docc ABSOLUTE)
+
+
+target_compile_definitions(docc-qant-plugin_test PRIVATE
+    DOCC_PATHS_BIN="${DOCC_PATHS_BIN}"
+    DOCC_PATHS_SRC="${DOCC_PATHS_SRC}"
+)
+
+
+if(DOCC_TESTS_ENABLE_DUMP)
+    target_compile_definitions(docc-qant-plugin_test PRIVATE
+            DOCC_TESTS_ENABLE_DUMP
+    )
+endif()
+
+add_test(NAME docc-qant-plugin_test COMMAND docc-qant-plugin_test)
+
+include(GoogleTest)
+gtest_discover_tests(docc-qant-plugin_test)

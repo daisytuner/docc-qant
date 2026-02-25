@@ -1,0 +1,31 @@
+find_package(pybind11 CONFIG REQUIRED)
+
+set(PYTHON_SOURCES
+    bindings/bindings.cpp
+)
+
+pybind11_add_module(_qant ${PYTHON_SOURCES})
+set_target_properties(_qant PROPERTIES
+    CXX_STANDARD 20
+    CXX_STANDARD_REQUIRED ON
+)
+target_include_directories(_qant
+    PUBLIC
+        $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/bindings>
+)
+
+target_link_libraries(_qant PRIVATE docc::qant-plugin)
+
+target_include_directories(_qant PRIVATE
+    ${CMAKE_SOURCE_DIR}/plugin/include
+)
+
+# Install artifacts for the Python wheel
+install(TARGETS _qant DESTINATION docc/qant COMPONENT docc_qant)
+
+add_custom_command(TARGET _qant POST_BUILD
+    COMMAND ${CMAKE_COMMAND} -E create_symlink
+    "$<TARGET_FILE:_qant>"
+    "${CMAKE_CURRENT_SOURCE_DIR}/docc/qant/$<TARGET_FILE_NAME:_qant>"
+    COMMENT "Creating symlink to docc.qant._qant in src dir"
+)
