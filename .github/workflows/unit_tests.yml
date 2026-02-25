@@ -1,0 +1,58 @@
+name: Unit Tests
+
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+    types: [opened, reopened, synchronize, ready_for_review]
+  schedule:
+    - cron: "0 5 * * *"
+
+jobs:
+  unit_test:
+    runs-on:
+      group: dahlia
+      labels: openmp
+    container:
+      image: daisytuner/docc-build-env-llvm19-ubuntu-24.04:latest
+
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          submodules: recursive
+          lfs: true
+
+      - name: Formatting
+        run: find plugin/src plugin/include plugin/tests -name "*.cpp" -o -name "*.h" | xargs -r clang-format-19 -style=file --dry-run --Werror
+
+      - name: Build docc
+        run: |
+          git config --global url."https://github.com/".insteadOf "git@github.com:"
+          git clone --depth 1 --no-single-branch "https://github.com/daisytuner/docc.git" /tmp/docc
+          cd /tmp/docc
+          git checkout ${{ github.head_ref }} || true
+          git rev-parse HEAD
+          git submodule update --init --recursive --depth 1
+          git lfs fetch
+
+      - name: Build and test
+        run: |
+          mkdir build
+          cd build
+          cmake .. -G Ninja \
+            -DCMAKE_BUILD_TYPE=Debug \
+            -DCMAKE_C_COMPILER=clang-19 \
+            -DCMAKE_CXX_COMPILER=clang++-19 \
+            -DWITH_DOCC=/tmp/docc \
+            -DDOCC_QANT_ENABLE_COVERAGE=ON
+          ninja -j$(nproc)
+
+          ./plugin/tests/docc-qant-plugin_test
+
+          # Run coverage
+          gcovr --gcov-executable "llvm-cov-19 gcov" --filter ../plugin/ --coveralls coveralls.json -r ../
+
+      - name: Coveralls
+        uses: coverallsapp/github-action@v2
+
