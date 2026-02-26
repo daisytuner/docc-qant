@@ -1,0 +1,3 @@
+[submodule "3rdParty/docc"]
+	path = 3rdParty/docc
+	url = git@github.com:daisytuner/docc.git

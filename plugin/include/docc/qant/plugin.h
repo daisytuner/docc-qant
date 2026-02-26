@@ -1,12 +1,14 @@
 #pragma once
 
-#include <sdfg/codegen/dispatchers/node_dispatcher_registry.h>
-#include <sdfg/codegen/language_extension.h>
-#include <sdfg/passes/scheduler/scheduler_registry.h>
-#include <sdfg/serializer/json_serializer.h>
+#include <sdfg/plugins/plugins.h>
 
-namespace docc::qant {
+// Plugin registration at top-level namespace
+sdfg::plugins::Plugin register_docc_plugin();
 
-void register_plugin();
+namespace docc {
+namespace qant {
+
+void schedule(sdfg::StructuredSDFG& sdfg, const std::string& category);
 
 }
+} // namespace docc
