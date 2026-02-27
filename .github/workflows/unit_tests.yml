@@ -98,6 +98,9 @@ jobs:
           submodules: recursive
           lfs: true
 
+      - name: Mark GitHub Actions workdir as safe
+        run: git config --global --add safe.directory "$GITHUB_WORKSPACE"
+
       - name: Fetch LFS files
         run: git lfs pull
 
@@ -110,9 +113,6 @@ jobs:
         run: |
           python -m venv .venv
           echo "$PWD/.venv/bin" >> $GITHUB_PATH
-
-      - name: Mark GitHub Actions workdir as safe
-        run: git config --global --add safe.directory "$GITHUB_WORKSPACE"
 
       - name: Install dependencies
         run: |

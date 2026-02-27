@@ -17,7 +17,7 @@ add_subdirectory(3rdParty/docc)
 add_subdirectory(plugin)
 
 # Add bindings
-option(BUILD_QANT_PYTHON_BINDINGS "Build Python bindings" ON)
+option(BUILD_QANT_PYTHON_BINDINGS "Build Python bindings" OFF)
 if(BUILD_QANT_PYTHON_BINDINGS)
     add_subdirectory(python)
 endif()
