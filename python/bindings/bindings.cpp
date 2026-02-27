@@ -6,8 +6,8 @@
 #include <cstring>
 #include <fstream>
 
-#include <sdfg/structured_sdfg.h>
 #include <sdfg/plugins/plugins.h>
+#include <sdfg/structured_sdfg.h>
 
 #include "docc/qant/plugin.h"
 
