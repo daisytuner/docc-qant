@@ -1,7 +1,10 @@
 #include "docc/qant/plugin.h"
+#include "docc/qant/blas/gemm.h"
+#include "docc/qant/qant.h"
 
 #include <sdfg/analysis/analysis.h>
 #include <sdfg/builder/structured_sdfg_builder.h>
+#include <sdfg/data_flow/library_nodes/math/blas/gemm_node.h>
 
 sdfg::plugins::Plugin register_docc_plugin() {
     return sdfg::plugins::Plugin{
@@ -10,14 +13,21 @@ sdfg::plugins::Plugin register_docc_plugin() {
         .description = "Q.ANT target extension for the docc compiler",
         .register_plugin_callback =
             [](sdfg::plugins::Context& context) {
-                // TODO: Register Q.ANT specific library nodes
-                // context.library_node_serializer_registry.register_serializer(...);
-
-                // TODO: Register Q.ANT specific dispatchers
-                // context.node_dispatcher_registry.register_dispatcher(...);
-
-                // TODO: Register Q.ANT specific schedulers
-                // context.scheduler_registry.register_scheduler(...);
+                // Register Q.ANT GEMM dispatcher
+                context.library_node_dispatcher_registry.register_library_node_dispatcher(
+                    sdfg::math::blas::LibraryNodeType_GEMM.value() + "::" + docc::qant::ImplementationType_QANT.value(),
+                    [](sdfg::codegen::LanguageExtension& language_extension,
+                       const sdfg::Function& function,
+                       const sdfg::data_flow::DataFlowGraph& data_flow_graph,
+                       const sdfg::data_flow::LibraryNode& node) {
+                        return std::make_unique<docc::qant::blas::GEMMNodeDispatcher_QANT>(
+                            language_extension,
+                            function,
+                            data_flow_graph,
+                            dynamic_cast<const sdfg::math::blas::GEMMNode&>(node)
+                        );
+                    }
+                );
 
                 std::cout << "Q.ANT plugin registered with docc compiler!" << std::endl;
             },

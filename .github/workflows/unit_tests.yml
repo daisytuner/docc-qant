@@ -40,6 +40,12 @@ jobs:
           apt update
           apt install -y ./qant-native-computing-toolkit.2.1.0-1-amd64.deb libdlpack-dev libxtensor-blas-dev xtensor-dev
 
+          cd /tmp
+          wget -q https://github.com/dmlc/dlpack/archive/refs/tags/v1.2.tar.gz
+          tar -xzf v1.2.tar.gz
+          cd dlpack-1.2
+          cp -r include/dlpack /usr/local/include/
+
       - name: Build
         run: |
           mkdir build
@@ -122,6 +128,12 @@ jobs:
           python -m pip install --upgrade pip
           pip install pybind11 pytest coverage black==25.9.0 build scikit-build-core
           pip install numpy scipy
+
+          cd /tmp
+          wget -q https://github.com/dmlc/dlpack/archive/refs/tags/v1.2.tar.gz
+          tar -xzf v1.2.tar.gz
+          cd dlpack-1.2
+          cp -r include/dlpack /usr/local/include/
 
       - name: Formatting
         shell: bash
