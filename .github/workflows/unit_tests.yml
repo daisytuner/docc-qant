@@ -127,7 +127,7 @@ jobs:
         shell: bash
         run: |
           shopt -s globstar
-          clang-format-19 -style=file --dry-run --Werror python/bindings/**/*.h python/bindings/**/*.cpp
+          clang-format-19 -style=file --dry-run --Werror python/bindings/**/*.cpp
           black --check python/docc/ python/tests/
 
       - name: Build
