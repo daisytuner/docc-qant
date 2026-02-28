@@ -1,0 +1,76 @@
+[build-system]
+requires = [
+  "scikit-build-core>=0.10",
+  "pybind11>=2.12",
+]
+build-backend = "scikit_build_core.build"
+
+[project]
+name = "docc-qant"
+dynamic = ["version"]
+description = "Q.ANT target extension for the docc compiler"
+readme = "../README.md"
+authors = [{ name = "Daisytuner", email = "hello@daisytuner.com" }]
+maintainers = [{ name = "Daisytuner", email = "hello@daisytuner.com" }]
+requires-python = ">=3.11"
+
+classifiers = [
+  "Development Status :: 4 - Beta",
+  "Intended Audience :: Developers",
+  "Intended Audience :: Science/Research",
+  "Operating System :: POSIX :: Linux",
+  "Programming Language :: Python :: 3",
+  "Programming Language :: Python :: 3.11",
+  "Programming Language :: Python :: 3.12",
+  "Programming Language :: Python :: 3.13",
+  "Programming Language :: Python :: 3.14",
+  "Programming Language :: C++",
+  "Topic :: Scientific/Engineering",
+  "Topic :: Software Development :: Compilers",
+]
+
+dependencies = [
+  "docc-compiler==0.0.3",
+]
+
+[project.urls]
+Homepage = "https://daisytuner.com"
+Documentation = "https://docs.daisytuner.com"
+Repository = "https://github.com/daisytuner/docc"
+Issues = "https://github.com/daisytuner/docc/issues"
+
+[tool.scikit-build]
+wheel.packages = ["docc"]
+cmake.source-dir = ".."
+cmake.build-type = "Release"
+cmake.define.BUILD_QANT_PYTHON_BINDINGS = "ON"
+cmake.define.SDFG_BUILD_TESTS = "OFF"
+cmake.define.BUILD_TESTS = "OFF"
+cmake.define.BUILD_BENCHMARKS = "OFF"
+cmake.define.BUILD_BENCHMARKS_GOOGLE = "OFF"
+
+[tool.scikit-build.metadata.version]
+provider = "scikit_build_core.metadata.regex"
+input = "../VERSION"
+regex = "(?P<value>\\d+\\.\\d+\\.\\d+)"
+
+[tool.cibuildwheel]
+build = "cp311-* cp312-* cp313-* cp314-*"
+skip = "*-win32 *-manylinux_i686 *-musllinux_*"
+build-frontend = "build[uv]"
+
+manylinux-x86_64-image = "manylinux_2_28"
+manylinux-aarch64-image = "manylinux_2_28"
+
+test-command = "python -c \"import docc.qant; print('docc.qant imported successfully')\""
+test-requires = ["numpy", "pytest", "scipy"]
+
+[tool.cibuildwheel.linux]
+before-all = [
+  "yum install -y boost-devel gmp-devel cmake ninja-build git libcurl-devel autoconf automake libtool",
+  "git clone --depth 1 --branch v3.11.3 https://github.com/nlohmann/json.git /tmp/nlohmann_json",
+  "cmake -S /tmp/nlohmann_json -B /tmp/nlohmann_json/build -DJSON_BuildTests=OFF",
+  "cmake --install /tmp/nlohmann_json/build",
+  "curl -L https://libisl.sourceforge.io/isl-0.27.tar.xz | tar -xJ -C /tmp",
+  "cd /tmp/isl-0.27 && ./configure && make -j$(nproc) && make install",
+]

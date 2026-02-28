@@ -10,7 +10,7 @@ on:
     - cron: "0 5 * * *"
 
 jobs:
-  unit_test:
+  cpp-tests-linux:
     runs-on:
       group: dahlia
       labels: openmp
@@ -23,41 +23,134 @@ jobs:
           submodules: recursive
           lfs: true
 
+      - name: Mark GitHub Actions workdir as safe
+        run: git config --global --add safe.directory "$GITHUB_WORKSPACE"
+
+      - name: Fetch LFS files
+        run: git lfs pull
+
       - name: Formatting
-        run: find plugin/src plugin/include plugin/tests -name "*.cpp" -o -name "*.h" | xargs -r clang-format-19 -style=file --dry-run --Werror
+        shell: bash
+        run: |
+          shopt -s globstar
+          clang-format-19 -style=file --dry-run --Werror plugin/include/**/*.h plugin/src/**/*.cpp plugin/tests/**/*.cpp
 
       - name: Install Dependencies
         run: |
           apt update
           apt install -y ./qant-native-computing-toolkit.2.1.0-1-amd64.deb libdlpack-dev libxtensor-blas-dev xtensor-dev
 
-      - name: Build docc
-        run: |
-          git config --global url."https://github.com/".insteadOf "git@github.com:"
-          git clone --depth 1 --no-single-branch "https://github.com/daisytuner/docc.git" /tmp/docc
-          cd /tmp/docc
-          git checkout ${{ github.head_ref }} || true
-          git rev-parse HEAD
-          git submodule update --init --recursive --depth 1
-          git lfs fetch
-
-      - name: Build and test
+      - name: Build
         run: |
           mkdir build
           cd build
-          cmake .. -G Ninja \
-            -DCMAKE_BUILD_TYPE=Debug \
+          cmake \
+            -G Ninja \
             -DCMAKE_C_COMPILER=clang-19 \
             -DCMAKE_CXX_COMPILER=clang++-19 \
-            -DWITH_DOCC=/tmp/docc \
-            -DDOCC_QANT_ENABLE_COVERAGE=ON
+            -DCMAKE_INSTALL_PREFIX=/usr/local \
+            -DCMAKE_BUILD_TYPE=Debug \
+            -DDOCC_QANT_ENABLE_COVERAGE=ON \
+            -DBUILD_TESTS:BOOL=OFF \
+            -DBUILD_BENCHMARKS:BOOL=OFF \
+            -DBUILD_BENCHMARKS_GOOGLE:BOOL=OFF  \
+            ..
           ninja -j$(nproc)
+          ninja install
 
           ./plugin/tests/docc-qant-plugin_test
 
-          # Run coverage
-          gcovr --gcov-executable "llvm-cov-19 gcov" --filter ../plugin/ --coveralls coveralls.json -r ../
+      # - name: Unit Tests
+      #   run: |
+      #     cd build/
+      #     LLVM_PROFILE_FILE="docc-qant-plugin_test.profraw" ./plugin/tests/docc-qant-plugin_test
 
-      - name: Coveralls
-        uses: coverallsapp/github-action@v2
+      #     cd ../
+      #     llvm-cov-19 export ./build/plugin/tests/docc-qant-plugin_test -format=lcov > build/coverage_full.lcov
+      #     lcov --extract build/coverage_full.lcov '*/plugin/src/*' '*/plugin/include/*' --output-file build/coverage.lcov
+
+      # - name: Coveralls
+      #   uses: coverallsapp/github-action@v2
+      #   with:
+      #     format: lcov
+      #     parallel: true
+      #     file: build/coverage.lcov
+
+      # - name: Coveralls
+      #   uses: coverallsapp/github-action@v2
+
+  python-tests-linux:
+    runs-on:
+      group: dahlia
+      labels: openmp
+    container:
+      image: daisytuner/docc-build-env-llvm19-base:latest-amd64
+      options: >-
+        --cap-add=PERFMON
+    strategy:
+      fail-fast: false
+      matrix:
+        python-version: ["3.11", "3.12", "3.13", "3.14"]
+
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          submodules: recursive
+          lfs: true
+
+      - name: Mark GitHub Actions workdir as safe
+        run: git config --global --add safe.directory "$GITHUB_WORKSPACE"
+
+      - name: Fetch LFS files
+        run: git lfs pull
+
+      - name: Set up Python ${{ matrix.python-version }}
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python-version }}
+
+      - name: Create virtual environment
+        run: |
+          python -m venv .venv
+          echo "$PWD/.venv/bin" >> $GITHUB_PATH
+
+      - name: Install dependencies
+        run: |
+          apt update
+          apt install -y ./qant-native-computing-toolkit.2.1.0-1-amd64.deb libdlpack-dev libxtensor-blas-dev xtensor-dev
+
+          python -m pip install --upgrade pip
+          pip install pybind11 pytest coverage black==25.9.0 build scikit-build-core
+          pip install numpy scipy
+
+      - name: Formatting
+        shell: bash
+        run: |
+          shopt -s globstar
+          clang-format-19 -style=file --dry-run --Werror python/bindings/**/*.cpp
+          black --check python/docc/ python/tests/
+
+      - name: Build
+        run: |
+          pip install --no-build-isolation -v -e 3rdParty/docc/python/
+          pip install --no-build-isolation -v -e python/
+
+      - name: Unit Tests
+        run: |
+          export LD_LIBRARY_PATH=/usr/local/lib:$LD_LIBRARY_PATH
+          coverage run --source=python/docc -m pytest -v python/tests
+          coverage xml
+
+      # - name: Coveralls
+      #   uses: coverallsapp/github-action@v2
+      #   with:
+      #     flag-name: python-${{ matrix.python-version }}
+      #     parallel: true
+      #     format: cobertura
+      #     file: coverage.xml
+
+      # - name: Integration Tests
+      #   run: |
+      #     export LD_LIBRARY_PATH=/usr/local/lib:$LD_LIBRARY_PATH
+      #     pytest -v python/benchmarks/
 
