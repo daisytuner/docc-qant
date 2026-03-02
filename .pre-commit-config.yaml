@@ -9,7 +9,9 @@ repos:
     rev: v5.0.0 # Use the latest stable revision
     hooks:
       - id: trailing-whitespace
+        exclude: '\.patch$'
       - id: end-of-file-fixer
+        exclude: '\.patch$'
       - id: check-yaml
       - id: check-added-large-files
 

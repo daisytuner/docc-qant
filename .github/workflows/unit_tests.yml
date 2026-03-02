@@ -35,6 +35,12 @@ jobs:
           shopt -s globstar
           clang-format-19 -style=file --dry-run --Werror plugin/include/**/*.h plugin/src/**/*.cpp plugin/tests/**/*.cpp
 
+      - name: Apply DOCC patches
+        run: |
+          cd 3rdParty/docc
+          git apply ../../patches/docc-py-bindings-qant-compiler.patch
+          git apply ../../patches/docc-expansion-pass-qant-impl.patch
+
       - name: Install Dependencies
         run: |
           apt update
@@ -120,6 +126,12 @@ jobs:
           python -m venv .venv
           echo "$PWD/.venv/bin" >> $GITHUB_PATH
 
+      - name: Apply DOCC patches
+        run: |
+          cd 3rdParty/docc
+          git apply ../../patches/docc-py-bindings-qant-compiler.patch
+          git apply ../../patches/docc-expansion-pass-qant-impl.patch
+
       - name: Install dependencies
         run: |
           apt update
@@ -165,4 +177,3 @@ jobs:
       #   run: |
       #     export LD_LIBRARY_PATH=/usr/local/lib:$LD_LIBRARY_PATH
       #     pytest -v python/benchmarks/
-

@@ -1,0 +1,27 @@
+diff --git a/sdfg/src/passes/schedules/expansion_pass.cpp b/sdfg/src/passes/schedules/expansion_pass.cpp
+index 6edcd2ba..554a31d6 100644
+--- a/sdfg/src/passes/schedules/expansion_pass.cpp
++++ b/sdfg/src/passes/schedules/expansion_pass.cpp
+@@ -5,6 +5,9 @@
+ namespace sdfg {
+ namespace passes {
+
++// HACK: QANT implementation type for testing
++static inline data_flow::ImplementationType ImplementationType_QANT{"qant"};
++
+ Expansion::Expansion(builder::StructuredSDFGBuilder& builder, analysis::AnalysisManager& analysis_manager)
+     : visitor::StructuredSDFGVisitor(builder, analysis_manager) {}
+
+@@ -13,6 +16,12 @@ bool Expansion::accept(structured_control_flow::Block& node) {
+
+     bool applied = false;
+     for (auto* library_node : dataflow.library_nodes()) {
++        // HACK: Set GEMM nodes to use QANT implementation for testing
++        if (library_node->code() == math::blas::LibraryNodeType_GEMM.value()) {
++            library_node->implementation_type() = ImplementationType_QANT;
++            continue;
++        }
++
+         if (library_node->implementation_type() != data_flow::ImplementationType_NONE) {
+             continue;
+         }

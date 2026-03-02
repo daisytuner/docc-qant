@@ -1,0 +1,41 @@
+diff --git a/python/bindings/py_structured_sdfg.cpp b/python/bindings/py_structured_sdfg.cpp
+index 55c0ef30..10dbf919 100644
+--- a/python/bindings/py_structured_sdfg.cpp
++++ b/python/bindings/py_structured_sdfg.cpp
+@@ -49,7 +49,7 @@
+ #if defined(__APPLE__)
+ #define DOCC_CXX_COMPILER "clang++"
+ #elif defined(__linux__)
+-#define DOCC_CXX_COMPILER "clang-19"
++#define DOCC_CXX_COMPILER "g++"
+ #else
+ #error "Unsupported platform"
+ #endif
+@@ -411,7 +411,7 @@ std::string PyStructuredSDFG::compile(
+         std::string name = lib_path.stem().string();
+         std::string object_file = build_path.string() + "/" + name + ".o";
+         std::stringstream cmd;
+-        cmd << DOCC_CXX_COMPILER << " -c -fPIC -O3  -march=native -mtune=native -funroll-loops";
++        cmd << DOCC_CXX_COMPILER << " -c -fPIC -O3 -std=c++23 -march=native -mtune=native -funroll-loops";
+         if (!package_path_str.empty()) {
+             cmd << " -L" << package_path_str;
+             cmd << " -I" << package_include_path_str;
+@@ -440,7 +440,7 @@ std::string PyStructuredSDFG::compile(
+     // Compile
+     {
+         std::stringstream cmd;
+-        cmd << DOCC_CXX_COMPILER << " -c -fPIC -O3 -march=native -mtune=native -funroll-loops";
++        cmd << DOCC_CXX_COMPILER << " -c -fPIC -O3 -std=c++23 -march=native -mtune=native -funroll-loops";
+         if (!package_path_str.empty()) {
+             cmd << " -L" << package_path_str;
+             cmd << " -I" << package_include_path_str;
+@@ -498,6 +498,9 @@ std::string PyStructuredSDFG::compile(
+         cmd << " -lonnxruntime";
+         cmd << " -ldl"; // Required for dladdr()
+     }
++    if (target == "qant") {
++        cmd << " -lqant_native_computing_toolkit";
++    }
+     cmd << " -o " << lib_path.string();
+ 
+ 
