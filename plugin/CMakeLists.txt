@@ -2,6 +2,7 @@
 
 set(SOURCE_FILES_PRIVATE
     src/plugin.cpp
+    src/qant/blas/gemm.cpp
 )
 
 add_library(docc-qant-plugin STATIC
