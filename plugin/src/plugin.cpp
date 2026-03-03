@@ -5,6 +5,8 @@
 #include <sdfg/analysis/analysis.h>
 #include <sdfg/builder/structured_sdfg_builder.h>
 #include <sdfg/data_flow/library_nodes/math/blas/gemm_node.h>
+#include <sdfg/plugins/target_mapping.h>
+#include <sdfg/passes/targets/target_mapping_pass.h>
 
 sdfg::plugins::Plugin register_docc_plugin() {
     return sdfg::plugins::Plugin{
@@ -38,11 +40,33 @@ sdfg::plugins::Plugin register_docc_plugin() {
 namespace docc {
 namespace qant {
 
+class QantLibNodeMapper : public sdfg::plugins::TargetMapper {
+public:
+    bool try_map(
+        sdfg::builder::StructuredSDFGBuilder& builder,
+        sdfg::analysis::AnalysisManager& analysis_manager,
+        sdfg::data_flow::LibraryNode& node
+    ) const override {
+        if (node.code() == sdfg::math::blas::LibraryNodeType_GEMM.value()) {
+            auto* gemm_node = dynamic_cast<sdfg::math::blas::GEMMNode*>(&node);
+            
+            gemm_node->implementation_type() = docc::qant::ImplementationType_QANT;
+            return true;
+        }
+
+        return false;
+    }
+};
+
 void schedule(sdfg::StructuredSDFG& sdfg, const std::string& category) {
     sdfg::builder::StructuredSDFGBuilder builder(sdfg);
     sdfg::analysis::AnalysisManager analysis_manager(sdfg);
 
     std::cout << "Scheduling for Q.ANT target with category: " << category << std::endl;
+
+    std::vector<std::shared_ptr<sdfg::plugins::TargetMapper>> mappers{std::make_shared<QantLibNodeMapper>()};
+    sdfg::passes::TargetMappingPass mappingPass(mappers);
+    mappingPass.run_pass(builder, analysis_manager);
 
     // TODO: Add Q.ANT specific scheduling passes here
     // Example: Process library nodes, apply Q.ANT transformations
