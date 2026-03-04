@@ -9,6 +9,8 @@ _deps/
 *-build-*/
 build-*/
 
+__pycache__/
+
 # Prerequisites
 *.d
 
