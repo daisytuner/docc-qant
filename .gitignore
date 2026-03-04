@@ -3,10 +3,13 @@
 
 # cmake
 build/
+pybuild/
 .cache/
 _deps/
 *-build-*/
 build-*/
+
+__pycache__/
 
 # Prerequisites
 *.d

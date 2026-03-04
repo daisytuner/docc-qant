@@ -14,6 +14,11 @@
 namespace py = pybind11;
 
 PYBIND11_MODULE(_qant, m) {
+    static sdfg::plugins::Context docc_context = sdfg::plugins::Context::global_context();
+    sdfg::codegen::register_default_dispatchers();
+    sdfg::serializer::register_default_serializers();
+    docc::qant::register_plugin(docc_context);
+
     m.doc() = "Q.ANT target extension for the docc compiler";
 
     m.def(
@@ -36,5 +41,23 @@ PYBIND11_MODULE(_qant, m) {
         py::arg("sdfg_ptr"),
         py::arg("category"),
         "Schedule an SDFG for Q.ANT target. Takes native pointer to StructuredSDFG."
+    );
+
+    m.def(
+        "compile_qant",
+        [](uintptr_t sdfg_ptr,
+           const std::string& output_folder,
+           const std::string& target,
+           const std::string& instrumentation_mode,
+           bool capture_args) {
+            auto* sdfg = reinterpret_cast<sdfg::StructuredSDFG*>(sdfg_ptr);
+            return docc::qant::compile(*sdfg, output_folder, target, instrumentation_mode, capture_args);
+        },
+        py::arg("sdfg_ptr"),
+        py::arg("output_folder"),
+        py::arg("target"),
+        py::arg("instrumentation_mode"),
+        py::arg("capture_args"),
+        "Compile an SDFG for Q.ANT target. Takes native pointer to StructuredSDFG."
     );
 }
