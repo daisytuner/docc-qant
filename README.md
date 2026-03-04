@@ -82,17 +82,6 @@ cd docc-qant
 git lfs pull
 ```
 
-#### 2. Apply DOCC Patches
-
-Currently, the plugin requires patches to the DOCC submodule to allow a seemless integration of the external target:
-
-```bash
-cd 3rdParty/docc
-git apply ../../patches/docc-py-bindings-qant-compiler.patch
-git apply ../../patches/docc-expansion-pass-qant-impl.patch
-cd ../..
-```
-
 #### 3. Build C++ Plugin
 
 ```bash
