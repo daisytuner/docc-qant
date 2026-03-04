@@ -47,9 +47,6 @@ Install required packages:
 # Ubuntu/Debian
 sudo apt update
 sudo apt install -y \
-    libdlpack-dev \
-    libxtensor-blas-dev \
-    xtensor-dev \
     cmake \
     ninja-build \
     clang-19 \
@@ -126,6 +123,9 @@ source .venv/bin/activate
 # Install dependencies
 pip install --upgrade pip
 pip install numpy scipy ml_dtypes pybind11 scikit-build-core
+
+# For testing
+pip install pytest
 
 # Install DOCC Python bindings
 pip install -e 3rdParty/docc/python/
