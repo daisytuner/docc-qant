@@ -1,6 +1,6 @@
 # docc-qant
 
-A plugin for DOCC (Daiytuner Optimizing Compiler Collection) that adds support for the Qant native computing toolkit, enabling efficient execution of numerical computations with bfloat16 precision. The `docc-qant` plugin extends DOCC with Qant target support, allowing you to compile and execute Python functions with numpy operations on Qant hardware.
+A plugin for DOCC (Daisytuner Optimizing Compiler Collection) that adds support for the Qant native computing toolkit, enabling efficient execution of numerical computations with bfloat16 precision. The `docc-qant` plugin extends DOCC with Qant target support, allowing you to compile and execute Python functions with numpy operations on Qant hardware.
 
 ## Quick Start
 
@@ -47,10 +47,21 @@ Install required packages:
 # Ubuntu/Debian
 sudo apt update
 sudo apt install -y \
+    git-lfs \
     cmake \
     ninja-build \
     clang-19 \
-    git-lfs
+    libgmp-dev \
+    libcurl4-gnutls-dev \
+    libisl-dev \
+    nlohmann-json3-dev \
+    libopenblas-dev
+```
+
+Optional development tools:
+
+```bash
+sudo apt install -y clang-format-19
 ```
 
 Install DLPack v1.2 headers:
@@ -109,18 +120,21 @@ cd ..  # Back to repository root
 python -m venv .venv
 source .venv/bin/activate
 
-# Install dependencies
+# Upgrade pip
 pip install --upgrade pip
-pip install numpy scipy ml_dtypes pybind11 scikit-build-core
 
-# For testing
-pip install pytest
+# Install build dependencies
+pip install scikit-build-core pybind11
 
-# Install DOCC Python bindings
+# Install DOCC Python bindings (includes numpy, scipy, ml_dtypes)
 pip install -e 3rdParty/docc/python/
 
 # Install docc-qant Python package
 pip install -e python/
+
+# Optional: Install development tools
+pip install pytest  # For running tests
+pip install black   # For code formatting
 ```
 
 #### 5. Verify Installation
