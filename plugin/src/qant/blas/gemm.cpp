@@ -57,6 +57,7 @@ void GEMMNodeDispatcher_QANT::dispatch_code(
     globals_stream << "#include <qant_native_computing_toolkit.h>" << std::endl;
     globals_stream << "#include <cstdlib>" << std::endl;
     globals_stream << "#include <cstring>" << std::endl;
+    globals_stream << "#include <stdexcept>" << std::endl;
 
     // Get dimensions as expressions
     std::string m_expr = language_extension_.expression(gemm_node_.m());
@@ -118,6 +119,12 @@ void GEMMNodeDispatcher_QANT::dispatch_code(
     stream << "    &__qant_tensor_B" << std::endl;
     stream << ");" << std::endl;
     stream << std::endl;
+
+    stream << "if (__qant_result == nullptr) {" << std::endl;
+    stream.setIndent(stream.indent() + 4);
+    stream << "throw std::runtime_error(\"QANT linear_fprop failed.\");" << std::endl;
+    stream.setIndent(stream.indent() - 4);
+    stream << "}" << std::endl;
 
     // Native bfloat16
     stream << "memcpy(__C, __qant_result->dl_tensor.data, " << size_C << " * sizeof(__bf16));" << std::endl;
