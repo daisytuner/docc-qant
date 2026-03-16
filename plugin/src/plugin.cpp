@@ -1,5 +1,6 @@
 #include "docc/qant/plugin.h"
 #include "docc/qant/blas/gemm.h"
+#include "docc/qant/tensor/matmul.h"
 #include "docc/qant/qant.h"
 #include "sdfg/codegen/code_generators/cpp_code_generator.h"
 #include "sdfg/passes/pipeline.h"
@@ -9,6 +10,7 @@
 #include <sdfg/analysis/analysis.h>
 #include <sdfg/builder/structured_sdfg_builder.h>
 #include <sdfg/data_flow/library_nodes/math/blas/gemm_node.h>
+#include <sdfg/data_flow/library_nodes/math/tensor/matmul_node.h>
 #include <sdfg/passes/targets/target_mapping_pass.h>
 #include <sdfg/plugins/target_mapping.h>
 
@@ -39,6 +41,19 @@ void register_plugin(sdfg::plugins::Context& context) {
         }
     );
 
+    // Register Q.ANT MatMul dispatcher
+    context.library_node_dispatcher_registry.register_library_node_dispatcher(
+        sdfg::math::tensor::LibraryNodeType_MatMul.value() + "::" + docc::qant::ImplementationType_QANT.value(),
+        [](sdfg::codegen::LanguageExtension& language_extension,
+           const sdfg::Function& function,
+           const sdfg::data_flow::DataFlowGraph& data_flow_graph,
+           const sdfg::data_flow::LibraryNode& node) {
+            return std::make_unique<docc::qant::tensor::MatMulNodeDispatcher_QANT>(
+                language_extension, function, data_flow_graph, dynamic_cast<const sdfg::math::tensor::MatMulNode&>(node)
+            );
+        }
+    );
+
     std::cout << "Q.ANT plugin registered with docc compiler!" << std::endl;
 }
 
@@ -53,6 +68,13 @@ public:
             auto* gemm_node = dynamic_cast<sdfg::math::blas::GEMMNode*>(&node);
 
             gemm_node->implementation_type() = docc::qant::ImplementationType_QANT;
+            return true;
+        }
+
+        else if (node.code() == sdfg::math::tensor::LibraryNodeType_MatMul.value()) {
+            auto* matmul_node = dynamic_cast<sdfg::math::tensor::MatMulNode*>(&node);
+
+            matmul_node->implementation_type() = docc::qant::ImplementationType_QANT;
             return true;
         }
 
