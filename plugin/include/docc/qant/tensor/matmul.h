@@ -9,6 +9,20 @@ namespace qant {
 namespace tensor {
 
 class MatMulNodeDispatcher_QANT : public sdfg::codegen::LibraryNodeDispatcher {
+protected:
+    void handle_tensor_input(sdfg::codegen::PrettyPrinter& stream,
+        const std::string& src_name,
+        const std::string& conn,
+        const sdfg::types::IType& conn_type,
+        const sdfg::types::IType& base_type,
+        const sdfg::data_flow::Subset& subset) override;
+
+    void handle_tensor_output(sdfg::codegen::PrettyPrinter& stream,
+        const std::string& dst_name,
+        const std::string& conn,
+        const sdfg::types::IType& conn_type,
+        const sdfg::types::IType& base_type,
+        const sdfg::data_flow::Subset& subset) override;
 public:
     MatMulNodeDispatcher_QANT(
         sdfg::codegen::LanguageExtension& language_extension,

@@ -1,6 +1,8 @@
 #include "docc/qant/tensor/matmul.h"
 
 #include "sdfg/data_flow/access_node.h"
+#include "sdfg/types/tensor.h"
+#include "sdfg/types/pointer.h"
 
 #include <stdexcept>
 
@@ -46,6 +48,56 @@ void MatMulNodeDispatcher_QANT::emit_dlpack_tensor_wrapper(
     stream << var_name << ".dl_tensor.shape = " << var_name << "_shape;" << std::endl;
     stream << var_name << ".dl_tensor.strides = " << var_name << "_strides;" << std::endl;
     stream << var_name << ".dl_tensor.byte_offset = (uint64_t)(" << offset << ") * sizeof(__bf16);" << std::endl;
+    stream << std::endl;
+}
+
+void MatMulNodeDispatcher_QANT::handle_tensor_input(sdfg::codegen::PrettyPrinter& stream,
+        const std::string& src_name,
+        const std::string& conn,
+        const sdfg::types::IType& conn_type,
+        const sdfg::types::IType& base_type,
+        const sdfg::data_flow::Subset& subset)
+{
+    auto tensor_type = dynamic_cast<const sdfg::types::Tensor*>(&conn_type);
+    if (!tensor_type) {
+        throw std::runtime_error("Expected tensor type for tensor input");
+    }
+    sdfg::types::Pointer pointer_type(tensor_type->element_type());
+    stream << this->language_extension_.declaration(conn, pointer_type);
+    stream << " = ";
+
+    if (base_type.type_id() == sdfg::types::TypeID::Pointer) {
+        stream << "(" << this->language_extension_.type_cast(src_name, base_type) << ")";
+    } else {
+        stream << src_name;
+    }
+
+    stream << this->language_extension_.subset(base_type, subset) << ";";
+    stream << std::endl;
+}
+
+void MatMulNodeDispatcher_QANT::handle_tensor_output(sdfg::codegen::PrettyPrinter& stream,
+        const std::string& dst_name,
+        const std::string& conn,
+        const sdfg::types::IType& conn_type,
+        const sdfg::types::IType& base_type,
+        const sdfg::data_flow::Subset& subset)
+{
+    auto tensor_type = dynamic_cast<const sdfg::types::Tensor*>(&conn_type);
+    if (!tensor_type) {
+        throw std::runtime_error("Expected tensor type for tensor output");
+    }
+    sdfg::types::Pointer pointer_type(tensor_type->element_type());
+    stream << this->language_extension_.declaration(conn, pointer_type);
+    stream << " = ";
+
+    if (base_type.type_id() == sdfg::types::TypeID::Pointer) {
+        stream << "(" << this->language_extension_.type_cast(dst_name, base_type) << ")";
+    } else {
+        stream << dst_name;
+    }
+
+    stream << this->language_extension_.subset(base_type, subset) << ";";
     stream << std::endl;
 }
 
