@@ -8,6 +8,9 @@ pybuild/
 _deps/
 *-build-*/
 build-*/
+pybuild/
+pybuild-*/
+.docc-tmp/
 
 __pycache__/
 
