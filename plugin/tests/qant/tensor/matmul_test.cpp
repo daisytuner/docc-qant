@@ -4,14 +4,17 @@
 #include <stdfloat>
 #include <vector>
 
-#include "docc/qant/plugin.h"
+#include <sdfg/passes/dataflow/tensor_to_pointer_conversion.h>
+#include <sdfg/passes/targets/target_mapping_pass.h>
 #include "sdfg/analysis/analysis.h"
 #include "sdfg/builder/structured_sdfg_builder.h"
-#include "sdfg/data_flow/library_nodes/math/blas/gemm_node.h"
 #include "sdfg/data_flow/library_nodes/math/tensor/matmul_node.h"
-#include "sdfg/data_flow/library_nodes/stdlib/free.h"
-#include "sdfg/data_flow/library_nodes/stdlib/malloc.h"
-#include <sdfg/passes/dataflow/tensor_to_pointer_conversion.h>
+#include "sdfg/passes/pipeline.h"
+
+#include "docc/qant/dataflow/library_nodes/math/tensor/matmul_node.h"
+#include "docc/qant/passes/expansion_pass.h"
+#include "docc/qant/plugin.h"
+#include "docc/qant/qant.h"
 
 using namespace sdfg;
 
@@ -74,10 +77,36 @@ TEST(MatMulTest, MatMul_2D_SimpleMatrix) {
 
     analysis::AnalysisManager analysis_manager(sdfg);
 
+    std::vector<std::shared_ptr<sdfg::plugins::TargetMapper>> mappers{std::make_shared<docc::qant::QantLibNodeMapper>()
+    };
+    sdfg::passes::TargetMappingPass mappingPass(mappers);
+    mappingPass.run_pass(builder, analysis_manager);
+
+    sdfg.validate();
+
+    EXPECT_EQ(matmul_node.implementation_type(), docc::qant::ImplementationType_TensorQANT.value());
+
+    // Run expansion pass
+    sdfg::passes::Pipeline expansion("QantExpansion");
+    expansion.register_pass<sdfg::passes::QantExpansionPass>();
+    expansion.run(builder, analysis_manager);
+
+    sdfg.validate();
+
+    auto library_nodes = block.dataflow().library_nodes();
+    EXPECT_EQ(library_nodes.size(), 1);
+    auto* new_node = dynamic_cast<sdfg::math::tensor::QantMatMulNode*>(*library_nodes.begin());
+    EXPECT_TRUE(new_node);
+    EXPECT_EQ(new_node->implementation_type(), docc::qant::ImplementationType_QANT.value());
+
     sdfg::passes::TensorToPointerConversionPass tensor_to_pointer_conversion_pass;
     tensor_to_pointer_conversion_pass.run(builder, analysis_manager);
 
+    sdfg.validate();
+
     docc::qant::schedule(sdfg, "qant");
+
+    sdfg.validate();
 
     std::string lib_path = docc::qant::compile(sdfg, "/tmp/matmul_2d_direct/", "qant", "", false);
 
@@ -89,10 +118,10 @@ TEST(MatMulTest, MatMul_2D_SimpleMatrix) {
     ASSERT_NE(fn, nullptr) << dlerror();
 
     const int M = 4, K = 8, N = 6;
-    std::vector<__bf16> A(M * K), B(K * N), Y_result(M * N, (__bf16)0.0f);
+    std::vector<__bf16> A(M * K), B(K * N), Y_result(M * N, (__bf16) 0.0f);
     std::vector<float> Y_ref(M * N, 0.0f);
-    for (int i = 0; i < M * K; ++i) A[i] = (__bf16)(static_cast<float>(i % 7) * 0.5f);
-    for (int i = 0; i < K * N; ++i) B[i] = (__bf16)(static_cast<float>(i % 5) * 0.3f);
+    for (int i = 0; i < M * K; ++i) A[i] = (__bf16) (static_cast<float>(i % 7) * 0.5f);
+    for (int i = 0; i < K * N; ++i) B[i] = (__bf16) (static_cast<float>(i % 5) * 0.3f);
 
     // Compute reference matmul in float
     for (int i = 0; i < M; ++i) {
@@ -159,10 +188,38 @@ TEST(MatMulTest, MatMul_3D_Batched) {
 
     analysis::AnalysisManager analysis_manager_3d(sdfg);
 
-    sdfg::passes::TensorToPointerConversionPass tensor_to_pointer_conversion_pass_3d;
-    tensor_to_pointer_conversion_pass_3d.run(builder, analysis_manager_3d);
+    sdfg.validate();
+
+    std::vector<std::shared_ptr<sdfg::plugins::TargetMapper>> mappers{std::make_shared<docc::qant::QantLibNodeMapper>()
+    };
+    sdfg::passes::TargetMappingPass mappingPass(mappers);
+    mappingPass.run_pass(builder, analysis_manager_3d);
+
+    sdfg.validate();
+
+    EXPECT_EQ(matmul_node.implementation_type(), docc::qant::ImplementationType_TensorQANT.value());
+
+    // Run expansion pass
+    sdfg::passes::Pipeline expansion("QantExpansion");
+    expansion.register_pass<sdfg::passes::QantExpansionPass>();
+    expansion.run(builder, analysis_manager_3d);
+
+    sdfg.validate();
+
+    auto library_nodes = block.dataflow().library_nodes();
+    EXPECT_EQ(library_nodes.size(), 1);
+    auto* new_node = dynamic_cast<sdfg::math::tensor::QantMatMulNode*>(*library_nodes.begin());
+    EXPECT_TRUE(new_node);
+    EXPECT_EQ(new_node->implementation_type(), docc::qant::ImplementationType_QANT.value());
+
+    sdfg::passes::TensorToPointerConversionPass tensor_to_pointer_conversion_pass;
+    tensor_to_pointer_conversion_pass.run(builder, analysis_manager_3d);
+
+    sdfg.validate();
 
     docc::qant::schedule(sdfg, "qant");
+
+    sdfg.validate();
 
     std::string lib_path = docc::qant::compile(sdfg, "/tmp/matmul_3d_direct/", "qant", "", false);
 
@@ -175,10 +232,10 @@ TEST(MatMulTest, MatMul_3D_Batched) {
 
     const int Batch = 2, M = 4, K = 8, N = 6;
     const int total_a = Batch * M * K, total_b = Batch * K * N, total_y = Batch * M * N;
-    std::vector<__bf16> A(total_a), B(total_b), Y_result(total_y, (__bf16)0.0f);
+    std::vector<__bf16> A(total_a), B(total_b), Y_result(total_y, (__bf16) 0.0f);
     std::vector<float> Y_ref(total_y, 0.0f);
-    for (int i = 0; i < total_a; ++i) A[i] = (__bf16)(static_cast<float>(i % 7) * 0.5f);
-    for (int i = 0; i < total_b; ++i) B[i] = (__bf16)(static_cast<float>(i % 5) * 0.3f);
+    for (int i = 0; i < total_a; ++i) A[i] = (__bf16) (static_cast<float>(i % 7) * 0.5f);
+    for (int i = 0; i < total_b; ++i) B[i] = (__bf16) (static_cast<float>(i % 5) * 0.3f);
 
     // Compute reference batched matmul in float
     for (int batch = 0; batch < Batch; ++batch) {
@@ -186,8 +243,8 @@ TEST(MatMulTest, MatMul_3D_Batched) {
             for (int j = 0; j < N; ++j) {
                 float sum = 0.0f;
                 for (int p = 0; p < K; ++p) {
-                    sum += static_cast<float>(A[batch * M * K + i * K + p])
-                         * static_cast<float>(B[batch * K * N + p * N + j]);
+                    sum += static_cast<float>(A[batch * M * K + i * K + p]) *
+                           static_cast<float>(B[batch * K * N + p * N + j]);
                 }
                 Y_ref[batch * M * N + i * N + j] = sum;
             }

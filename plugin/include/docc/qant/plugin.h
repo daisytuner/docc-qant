@@ -1,6 +1,7 @@
 #pragma once
 
 #include <sdfg/plugins/plugins.h>
+#include <sdfg/plugins/target_mapping.h>
 
 // Plugin registration at top-level namespace
 sdfg::plugins::Plugin register_docc_plugin();
@@ -19,6 +20,16 @@ std::string compile(
     const std::string& instrumentation_mode,
     bool capture_args
 );
+
+
+class QantLibNodeMapper : public sdfg::plugins::TargetMapper {
+public:
+    bool try_map(
+        sdfg::builder::StructuredSDFGBuilder& builder,
+        sdfg::analysis::AnalysisManager& analysis_manager,
+        sdfg::data_flow::LibraryNode& node
+    ) const override;
+};
 
 } // namespace qant
 } // namespace docc

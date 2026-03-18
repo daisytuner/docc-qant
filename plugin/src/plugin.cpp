@@ -1,5 +1,7 @@
 #include "docc/qant/plugin.h"
 #include "docc/qant/blas/gemm.h"
+#include "docc/qant/dataflow/library_nodes/math/tensor/matmul_node.h"
+#include "docc/qant/passes/expansion_pass.h"
 #include "docc/qant/tensor/matmul.h"
 #include "docc/qant/qant.h"
 #include "sdfg/codegen/code_generators/cpp_code_generator.h"
@@ -12,7 +14,6 @@
 #include <sdfg/data_flow/library_nodes/math/blas/gemm_node.h>
 #include <sdfg/data_flow/library_nodes/math/tensor/matmul_node.h>
 #include <sdfg/passes/targets/target_mapping_pass.h>
-#include <sdfg/plugins/target_mapping.h>
 
 sdfg::plugins::Plugin register_docc_plugin() {
     return sdfg::plugins::Plugin{
@@ -43,7 +44,7 @@ void register_plugin(sdfg::plugins::Context& context) {
 
     // Register Q.ANT MatMul dispatcher
     context.library_node_dispatcher_registry.register_library_node_dispatcher(
-        sdfg::math::tensor::LibraryNodeType_MatMul.value() + "::" + docc::qant::ImplementationType_QANT.value(),
+        sdfg::math::tensor::LibraryNodeType_QantMatMul.value() + "::" + docc::qant::ImplementationType_QANT.value(),
         [](sdfg::codegen::LanguageExtension& language_extension,
            const sdfg::Function& function,
            const sdfg::data_flow::DataFlowGraph& data_flow_graph,
@@ -54,46 +55,66 @@ void register_plugin(sdfg::plugins::Context& context) {
         }
     );
 
-    std::cout << "Q.ANT plugin registered with docc compiler!" << std::endl;
-}
+    // Register QantMatMul serializer
+    context.library_node_serializer_registry.register_library_node_serializer(
+        sdfg::math::tensor::LibraryNodeType_QantMatMul.value(),
+        []() {
+            return std::make_unique<sdfg::math::tensor::QantMatMulNodeSerializer>();
+        }
+    );
 
-class QantLibNodeMapper : public sdfg::plugins::TargetMapper {
-public:
-    bool try_map(
+    std::cout << "Q.ANT plugin registered with docc compiler!" << std::endl;
+};
+
+bool QantLibNodeMapper::try_map(
         sdfg::builder::StructuredSDFGBuilder& builder,
         sdfg::analysis::AnalysisManager& analysis_manager,
         sdfg::data_flow::LibraryNode& node
-    ) const override {
-        if (node.code() == sdfg::math::blas::LibraryNodeType_GEMM.value()) {
-            auto* gemm_node = dynamic_cast<sdfg::math::blas::GEMMNode*>(&node);
+    ) const {
+    if (node.code() == sdfg::math::blas::LibraryNodeType_GEMM.value()) {
+        auto* gemm_node = dynamic_cast<sdfg::math::blas::GEMMNode*>(&node);
 
-            gemm_node->implementation_type() = docc::qant::ImplementationType_QANT;
-            return true;
-        }
-
-        else if (node.code() == sdfg::math::tensor::LibraryNodeType_MatMul.value()) {
-            auto* matmul_node = dynamic_cast<sdfg::math::tensor::MatMulNode*>(&node);
-
-            matmul_node->implementation_type() = docc::qant::ImplementationType_QANT;
-            return true;
-        }
-
-        return false;
+        gemm_node->implementation_type() = docc::qant::ImplementationType_QANT;
+        return true;
     }
+    else if (node.code() == sdfg::math::tensor::LibraryNodeType_MatMul.value()) {
+        auto* matmul_node = dynamic_cast<sdfg::math::tensor::MatMulNode*>(&node);
+
+        matmul_node->implementation_type() = docc::qant::ImplementationType_TensorQANT;
+        return true;
+    }
+    else if (node.code() == sdfg::math::tensor::LibraryNodeType_QantMatMul.value()) {
+        auto* matmul_node = dynamic_cast<sdfg::math::tensor::QantMatMulNode*>(&node);
+
+        matmul_node->implementation_type() = docc::qant::ImplementationType_QANT;
+        return true;
+    }
+
+    return false;
 };
+
+void expand(sdfg::StructuredSDFG& sdfg) {
+    sdfg::builder::StructuredSDFGBuilder builder(sdfg);
+    sdfg::analysis::AnalysisManager analysis_manager(sdfg);
+
+    std::vector<std::shared_ptr<sdfg::plugins::TargetMapper>> mappers{std::make_shared<qant::QantLibNodeMapper>()};
+    sdfg::passes::TargetMappingPass mappingPass(mappers);
+    mappingPass.run_pass(builder, analysis_manager);
+
+    // Run expansion pass
+    sdfg::passes::Pipeline expansion("QantExpansion");
+    expansion.register_pass<sdfg::passes::QantExpansionPass>();
+
+    expansion.run(builder, analysis_manager);
+}
 
 void schedule(sdfg::StructuredSDFG& sdfg, const std::string& category) {
     sdfg::builder::StructuredSDFGBuilder builder(sdfg);
     sdfg::analysis::AnalysisManager analysis_manager(sdfg);
 
-    std::cout << "Scheduling for Q.ANT target with category: " << category << std::endl;
-
-    std::vector<std::shared_ptr<sdfg::plugins::TargetMapper>> mappers{std::make_shared<QantLibNodeMapper>()};
+    std::vector<std::shared_ptr<sdfg::plugins::TargetMapper>> mappers{std::make_shared<qant::QantLibNodeMapper>()};
     sdfg::passes::TargetMappingPass mappingPass(mappers);
     mappingPass.run_pass(builder, analysis_manager);
-
-    // TODO: Add Q.ANT specific scheduling passes here
-    // Example: Process library nodes, apply Q.ANT transformations
 }
 
 namespace fs = std::filesystem;
