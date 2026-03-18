@@ -21,6 +21,8 @@ std::string compile(
     bool capture_args
 );
 
+void expand(sdfg::StructuredSDFG& sdfg);
+
 
 class QantLibNodeMapper : public sdfg::plugins::TargetMapper {
 public:
