@@ -145,7 +145,19 @@ jobs:
       - name: Unit Tests
         run: |
           export LD_LIBRARY_PATH=/usr/local/lib:$LD_LIBRARY_PATH
-          coverage run --source=python/docc -m pytest -v python/tests
+          coverage run --source=python/docc -m pytest -v python/tests/python
+          coverage xml
+
+      - name: MLIR Tests
+        if: matrix.python-version == '3.11' || matrix.python-version == '3.12' # torch-mlir release is not yet supported on newer versions
+        run: |
+          # Install torch-mlir
+          pip install torch-mlir torchvision --extra-index-url https://download.pytorch.org/whl/cpu -f https://github.com/llvm/torch-mlir-release/releases/expanded_assets/dev-wheels
+
+          pip install --no-build-isolation -v -e 3rdParty/docc/mlir/
+
+          export LD_LIBRARY_PATH=/usr/local/lib:$LD_LIBRARY_PATH
+          coverage run --source=python/docc -m pytest -v python/tests/mlir
           coverage xml
 
       # - name: Coveralls

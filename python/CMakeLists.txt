@@ -21,4 +21,4 @@ target_include_directories(_qant PRIVATE
 )
 
 # Install artifacts for the Python wheel
-install(TARGETS _qant DESTINATION docc/qant)
+install(TARGETS _qant DESTINATION docc/qant COMPONENT docc_qant)
