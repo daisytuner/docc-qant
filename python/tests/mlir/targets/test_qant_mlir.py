@@ -12,7 +12,6 @@ register_docc_plugin()
 docc.torch.set_backend_options(target="qant", category="server")
 
 
-@pytest.mark.skip(reason="Cannot yet map fp32 to qant operations")
 def test_inference_fp32():
     class LinearNet(nn.Module):
         def __init__(self, in_features=4, out_features=2):

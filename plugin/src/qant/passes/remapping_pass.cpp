@@ -27,9 +27,11 @@ bool QantRemapping::accept(structured_control_flow::Block& node) {
 
         if (library_node->code() == math::tensor::LibraryNodeType_MatMul.value()) {
             auto* matmul_node = dynamic_cast<math::tensor::MatMulNode*>(library_node);
+            auto quantization = matmul_node->primitive_type(dataflow);
             new_node = &builder_.add_library_node<math::tensor::QantMatMulNode>(
                 node,
                 matmul_node->debug_info(),
+                quantization,
                 matmul_node->shape_a(),
                 matmul_node->shape_b(),
                 matmul_node->strides_a(),

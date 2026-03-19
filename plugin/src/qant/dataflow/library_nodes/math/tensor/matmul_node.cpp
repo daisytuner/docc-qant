@@ -1,6 +1,7 @@
 #include "docc/qant/dataflow/library_nodes/math/tensor/matmul_node.h"
 #include <string>
 
+#include "daisy_rtl/primitive_types.h"
 #include "sdfg/analysis/scope_analysis.h"
 #include "sdfg/builder/structured_sdfg_builder.h"
 #include "sdfg/data_flow/library_nodes/math/blas/gemm_node.h"
@@ -27,6 +28,7 @@ QantMatMulNode::QantMatMulNode(
     const DebugInfo& debug_info,
     const graph::Vertex vertex,
     data_flow::DataFlowGraph& parent,
+    const types::PrimitiveType quantization,
     const symbolic::MultiExpression& shape_a,
     const symbolic::MultiExpression& shape_b,
     const symbolic::MultiExpression& strides_a,
@@ -34,7 +36,8 @@ QantMatMulNode::QantMatMulNode(
     symbolic::Expression offset_a,
     symbolic::Expression offset_b
 )
-    : MatMulNode(element_id, debug_info, vertex, parent, shape_a, shape_b, strides_a, strides_b, offset_a, offset_b) {
+    : MatMulNode(element_id, debug_info, vertex, parent, shape_a, shape_b, strides_a, strides_b, offset_a, offset_b),
+      quantization_(quantization) {
     code_ = LibraryNodeType_QantMatMul;
 };
 
@@ -62,6 +65,7 @@ void QantMatMulNode::validate(const Function& function) const {
 std::string QantMatMulNode::toStr() const {
     std::stringstream ss;
     ss << "QantMatMul(";
+    ss << types::primitive_type_to_string(quantization_) << ", ";
     ss << "A=[";
     for (size_t i = 0; i < shape_a().size(); ++i) {
         if (i > 0) ss << ", ";
@@ -87,6 +91,9 @@ std::string QantMatMulNode::toStr() const {
     ss << ")";
     return ss.str();
 }
+types::PrimitiveType QantMatMulNode::quantization() const { return quantization_; }
+
+void QantMatMulNode::set_quantization(const types::PrimitiveType quant) { quantization_ = quant; }
 
 
 nlohmann::json QantMatMulNodeSerializer::serialize(const data_flow::LibraryNode& library_node) {
@@ -119,6 +126,8 @@ nlohmann::json QantMatMulNodeSerializer::serialize(const data_flow::LibraryNode&
 
     j["offset_a"] = serializer.expression(matmul_node.offset_a());
     j["offset_b"] = serializer.expression(matmul_node.offset_b());
+
+    j["result_quant"] = matmul_node.quantization();
 
     return j;
 }
@@ -166,11 +175,17 @@ data_flow::LibraryNode& QantMatMulNodeSerializer::deserialize(
         offset_b = symbolic::parse(j["offset_b"].get<std::string>());
     }
 
+    auto result_quant = j.find("result_quant");
+    types::PrimitiveType quantization = types::BFloat;
+    if (result_quant != j.end()) {
+        quantization = result_quant->get<types::PrimitiveType>();
+    }
+
     sdfg::serializer::JSONSerializer serializer;
     DebugInfo debug_info = serializer.json_to_debug_info(j["debug_info"]);
 
-    return builder
-        .add_library_node<MatMulNode>(parent, debug_info, shape_a, shape_b, strides_a, strides_b, offset_a, offset_b);
+    return builder.add_library_node<
+        QantMatMulNode>(parent, debug_info, quantization, shape_a, shape_b, strides_a, strides_b, offset_a, offset_b);
 }
 
 } // namespace tensor
