@@ -7,6 +7,7 @@ set(gtest_force_shared_crt ON CACHE BOOL "" FORCE)
 FetchContent_MakeAvailable(googletest)
 
 set(TEST_FILES
+    qant/tensor/conv_test.cpp
     qant/tensor/matmul_test.cpp
     test.cpp
 )
