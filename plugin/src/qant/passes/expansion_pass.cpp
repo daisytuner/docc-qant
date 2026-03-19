@@ -2,6 +2,7 @@
 #include "docc/qant/dataflow/library_nodes/math/tensor/matmul_node.h"
 #include "docc/qant/qant.h"
 
+#include "sdfg/data_flow/library_node.h"
 #include "sdfg/data_flow/library_nodes/math/math.h"
 #include "sdfg/data_flow/library_nodes/math/tensor/matmul_node.h"
 #include "sdfg/types/pointer.h"
@@ -18,6 +19,11 @@ bool QantExpansion::accept(structured_control_flow::Block& node) {
 
     for (auto* library_node : dataflow.library_nodes()) {
         data_flow::LibraryNode* new_node = nullptr;
+
+        if (library_node->implementation_type() != data_flow::ImplementationType_NONE &&
+            library_node->implementation_type() != math::blas::ImplementationType_BLAS) {
+            continue;
+        }
 
         if (library_node->code() == math::tensor::LibraryNodeType_MatMul.value()) {
             auto* matmul_node = dynamic_cast<math::tensor::MatMulNode*>(library_node);
