@@ -13,6 +13,7 @@ def _compile(
 ) -> str:
     return compile_qant(sdfg._ptr, out_dir, "qant", inst_mode, capture)
 
+
 def _expand(sdfg, category: str, kwargs: Dict[str, Any]) -> None:
     expand_qant(sdfg._ptr, category)
     sdfg.expand()

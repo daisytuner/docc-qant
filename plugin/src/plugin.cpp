@@ -2,8 +2,8 @@
 #include "docc/qant/blas/gemm.h"
 #include "docc/qant/dataflow/library_nodes/math/tensor/matmul_node.h"
 #include "docc/qant/passes/expansion_pass.h"
-#include "docc/qant/tensor/matmul.h"
 #include "docc/qant/qant.h"
+#include "docc/qant/tensor/matmul.h"
 #include "sdfg/codegen/code_generators/cpp_code_generator.h"
 #include "sdfg/passes/pipeline.h"
 #include "sdfg/structured_sdfg.h"
@@ -56,12 +56,10 @@ void register_plugin(sdfg::plugins::Context& context) {
     );
 
     // Register QantMatMul serializer
-    context.library_node_serializer_registry.register_library_node_serializer(
-        sdfg::math::tensor::LibraryNodeType_QantMatMul.value(),
-        []() {
+    context.library_node_serializer_registry
+        .register_library_node_serializer(sdfg::math::tensor::LibraryNodeType_QantMatMul.value(), []() {
             return std::make_unique<sdfg::math::tensor::QantMatMulNodeSerializer>();
-        }
-    );
+        });
 
     std::cout << "Q.ANT plugin registered with docc compiler!" << std::endl;
 };
