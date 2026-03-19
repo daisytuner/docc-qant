@@ -3,7 +3,7 @@
 set(SOURCE_FILES_PRIVATE
     src/plugin.cpp
     src/qant/blas/gemm.cpp
-    src/qant/passes/expansion_pass.cpp
+    src/qant/passes/remapping_pass.cpp
     src/qant/tensor/matmul.cpp
     src/qant/dataflow/library_nodes/math/tensor/matmul_node.cpp
 )

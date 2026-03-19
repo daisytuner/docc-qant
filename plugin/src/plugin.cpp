@@ -1,7 +1,7 @@
 #include "docc/qant/plugin.h"
 #include "docc/qant/blas/gemm.h"
 #include "docc/qant/dataflow/library_nodes/math/tensor/matmul_node.h"
-#include "docc/qant/passes/expansion_pass.h"
+#include "docc/qant/passes/remapping_pass.h"
 #include "docc/qant/qant.h"
 #include "docc/qant/tensor/matmul.h"
 #include "sdfg/codegen/code_generators/cpp_code_generator.h"
@@ -69,8 +69,8 @@ void expand(sdfg::StructuredSDFG& sdfg) {
     sdfg::analysis::AnalysisManager analysis_manager(sdfg);
 
     // Run expansion pass
-    sdfg::passes::Pipeline expansion("QantExpansion");
-    expansion.register_pass<sdfg::passes::QantExpansionPass>();
+    sdfg::passes::Pipeline expansion("QantRemapping");
+    expansion.register_pass<sdfg::passes::QantRemappingPass>();
 
     expansion.run(builder, analysis_manager);
 }

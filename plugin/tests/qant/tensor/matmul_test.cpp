@@ -12,7 +12,7 @@
 #include "sdfg/passes/pipeline.h"
 
 #include "docc/qant/dataflow/library_nodes/math/tensor/matmul_node.h"
-#include "docc/qant/passes/expansion_pass.h"
+#include "docc/qant/passes/remapping_pass.h"
 #include "docc/qant/plugin.h"
 #include "docc/qant/qant.h"
 
@@ -78,8 +78,8 @@ TEST(MatMulTest, MatMul_2D_SimpleMatrix) {
     analysis::AnalysisManager analysis_manager(sdfg);
 
     // Run expansion pass
-    sdfg::passes::Pipeline expansion("QantExpansion");
-    expansion.register_pass<sdfg::passes::QantExpansionPass>();
+    sdfg::passes::Pipeline expansion("QantRemapping");
+    expansion.register_pass<sdfg::passes::QantRemappingPass>();
     expansion.run(builder, analysis_manager);
 
     sdfg.validate();
@@ -182,8 +182,8 @@ TEST(MatMulTest, MatMul_3D_Batched) {
     sdfg.validate();
 
     // Run expansion pass
-    sdfg::passes::Pipeline expansion("QantExpansion");
-    expansion.register_pass<sdfg::passes::QantExpansionPass>();
+    sdfg::passes::Pipeline expansion("QantRemapping");
+    expansion.register_pass<sdfg::passes::QantRemappingPass>();
     expansion.run(builder, analysis_manager_3d);
 
     sdfg.validate();

@@ -1,4 +1,4 @@
-#include "docc/qant/passes/expansion_pass.h"
+#include "docc/qant/passes/remapping_pass.h"
 #include "docc/qant/dataflow/library_nodes/math/tensor/matmul_node.h"
 #include "docc/qant/qant.h"
 
@@ -11,10 +11,10 @@
 namespace sdfg {
 namespace passes {
 
-QantExpansion::QantExpansion(builder::StructuredSDFGBuilder& builder, analysis::AnalysisManager& analysis_manager)
+QantRemapping::QantRemapping(builder::StructuredSDFGBuilder& builder, analysis::AnalysisManager& analysis_manager)
     : visitor::StructuredSDFGVisitor(builder, analysis_manager) {}
 
-bool QantExpansion::accept(structured_control_flow::Block& node) {
+bool QantRemapping::accept(structured_control_flow::Block& node) {
     auto& dataflow = node.dataflow();
 
     for (auto* library_node : dataflow.library_nodes()) {
