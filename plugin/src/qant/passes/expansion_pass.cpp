@@ -18,7 +18,6 @@ bool QantExpansion::accept(structured_control_flow::Block& node) {
 
     for (auto* library_node : dataflow.library_nodes()) {
 
-        if (library_node->implementation_type() == docc::qant::ImplementationType_TensorQANT) {
             data_flow::LibraryNode* new_node = nullptr;
 
             if (library_node->code() == math::tensor::LibraryNodeType_MatMul.value()) {
@@ -35,14 +34,14 @@ bool QantExpansion::accept(structured_control_flow::Block& node) {
                 );
                 new_node->implementation_type() = docc::qant::ImplementationType_QANT;
             }
+            else if (library_node->code() == sdfg::math::blas::LibraryNodeType_GEMM.value()) {
+                auto* gemm_node = dynamic_cast<sdfg::math::blas::GEMMNode*>(library_node);
 
-            // Expand math nodes that have no mapping
+                gemm_node->implementation_type() = docc::qant::ImplementationType_QANT;
+                return true;
+            }
+
             if (!new_node) {
-                if (auto math_node = dynamic_cast<math::MathNode*>(library_node)) {
-                    if (math_node->expand(this->builder_, this->analysis_manager_)) {
-                        return true;
-                    }
-                }
                 continue;
             }
 
@@ -77,25 +76,15 @@ bool QantExpansion::accept(structured_control_flow::Block& node) {
                 );
             }
 
-            // Remove old edges, then old node (keep access nodes — they're connected to new_node)
+            // Remove old edges, then old node
             for (auto* edge : old_edges) {
                 builder_.remove_memlet(node, *edge);
             }
             builder_.remove_node(node, *library_node);
 
             return true;
-        }
-        else if (library_node->implementation_type() != data_flow::ImplementationType_NONE) {
-            continue;
-        }
-
-        if (auto math_node = dynamic_cast<math::MathNode*>(library_node)) {
-            if (math_node->expand(this->builder_, this->analysis_manager_)) {
-                return true;
-            }
-        }
-
     }
+
     return false;
 }
 

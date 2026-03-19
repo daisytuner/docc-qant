@@ -77,15 +77,6 @@ TEST(MatMulTest, MatMul_2D_SimpleMatrix) {
 
     analysis::AnalysisManager analysis_manager(sdfg);
 
-    std::vector<std::shared_ptr<sdfg::plugins::TargetMapper>> mappers{std::make_shared<docc::qant::QantLibNodeMapper>()
-    };
-    sdfg::passes::TargetMappingPass mappingPass(mappers);
-    mappingPass.run_pass(builder, analysis_manager);
-
-    sdfg.validate();
-
-    EXPECT_EQ(matmul_node.implementation_type(), docc::qant::ImplementationType_TensorQANT.value());
-
     // Run expansion pass
     sdfg::passes::Pipeline expansion("QantExpansion");
     expansion.register_pass<sdfg::passes::QantExpansionPass>();
@@ -189,15 +180,6 @@ TEST(MatMulTest, MatMul_3D_Batched) {
     analysis::AnalysisManager analysis_manager_3d(sdfg);
 
     sdfg.validate();
-
-    std::vector<std::shared_ptr<sdfg::plugins::TargetMapper>> mappers{std::make_shared<docc::qant::QantLibNodeMapper>()
-    };
-    sdfg::passes::TargetMappingPass mappingPass(mappers);
-    mappingPass.run_pass(builder, analysis_manager_3d);
-
-    sdfg.validate();
-
-    EXPECT_EQ(matmul_node.implementation_type(), docc::qant::ImplementationType_TensorQANT.value());
 
     // Run expansion pass
     sdfg::passes::Pipeline expansion("QantExpansion");

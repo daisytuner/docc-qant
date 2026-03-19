@@ -17,7 +17,5 @@ namespace qant {
  */
 inline sdfg::data_flow::ImplementationType ImplementationType_QANT{"qant"};
 
-inline sdfg::data_flow::ImplementationType ImplementationType_TensorQANT{"qant_tensor"};
-
 } // namespace qant
 } // namespace docc

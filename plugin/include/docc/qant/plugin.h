@@ -24,14 +24,5 @@ std::string compile(
 void expand(sdfg::StructuredSDFG& sdfg);
 
 
-class QantLibNodeMapper : public sdfg::plugins::TargetMapper {
-public:
-    bool try_map(
-        sdfg::builder::StructuredSDFGBuilder& builder,
-        sdfg::analysis::AnalysisManager& analysis_manager,
-        sdfg::data_flow::LibraryNode& node
-    ) const override;
-};
-
 } // namespace qant
 } // namespace docc

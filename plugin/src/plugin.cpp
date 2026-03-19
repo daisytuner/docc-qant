@@ -66,40 +66,9 @@ void register_plugin(sdfg::plugins::Context& context) {
     std::cout << "Q.ANT plugin registered with docc compiler!" << std::endl;
 };
 
-bool QantLibNodeMapper::try_map(
-        sdfg::builder::StructuredSDFGBuilder& builder,
-        sdfg::analysis::AnalysisManager& analysis_manager,
-        sdfg::data_flow::LibraryNode& node
-    ) const {
-    if (node.code() == sdfg::math::blas::LibraryNodeType_GEMM.value()) {
-        auto* gemm_node = dynamic_cast<sdfg::math::blas::GEMMNode*>(&node);
-
-        gemm_node->implementation_type() = docc::qant::ImplementationType_QANT;
-        return true;
-    }
-    else if (node.code() == sdfg::math::tensor::LibraryNodeType_MatMul.value()) {
-        auto* matmul_node = dynamic_cast<sdfg::math::tensor::MatMulNode*>(&node);
-
-        matmul_node->implementation_type() = docc::qant::ImplementationType_TensorQANT;
-        return true;
-    }
-    else if (node.code() == sdfg::math::tensor::LibraryNodeType_QantMatMul.value()) {
-        auto* matmul_node = dynamic_cast<sdfg::math::tensor::QantMatMulNode*>(&node);
-
-        matmul_node->implementation_type() = docc::qant::ImplementationType_QANT;
-        return true;
-    }
-
-    return false;
-};
-
 void expand(sdfg::StructuredSDFG& sdfg) {
     sdfg::builder::StructuredSDFGBuilder builder(sdfg);
     sdfg::analysis::AnalysisManager analysis_manager(sdfg);
-
-    std::vector<std::shared_ptr<sdfg::plugins::TargetMapper>> mappers{std::make_shared<qant::QantLibNodeMapper>()};
-    sdfg::passes::TargetMappingPass mappingPass(mappers);
-    mappingPass.run_pass(builder, analysis_manager);
 
     // Run expansion pass
     sdfg::passes::Pipeline expansion("QantExpansion");
@@ -111,10 +80,6 @@ void expand(sdfg::StructuredSDFG& sdfg) {
 void schedule(sdfg::StructuredSDFG& sdfg, const std::string& category) {
     sdfg::builder::StructuredSDFGBuilder builder(sdfg);
     sdfg::analysis::AnalysisManager analysis_manager(sdfg);
-
-    std::vector<std::shared_ptr<sdfg::plugins::TargetMapper>> mappers{std::make_shared<qant::QantLibNodeMapper>()};
-    sdfg::passes::TargetMappingPass mappingPass(mappers);
-    mappingPass.run_pass(builder, analysis_manager);
 }
 
 namespace fs = std::filesystem;
