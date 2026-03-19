@@ -9,7 +9,6 @@ namespace qant {
 namespace tensor {
 
 class MatMulNodeDispatcher_QANT : public sdfg::codegen::LibraryNodeDispatcher {
-
 public:
     MatMulNodeDispatcher_QANT(
         sdfg::codegen::LanguageExtension& language_extension,

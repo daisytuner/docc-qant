@@ -1,8 +1,8 @@
 #include "docc/qant/tensor/matmul.h"
 
 #include "sdfg/data_flow/access_node.h"
-#include "sdfg/types/tensor.h"
 #include "sdfg/types/pointer.h"
+#include "sdfg/types/tensor.h"
 
 #include <stdexcept>
 
@@ -31,7 +31,8 @@ void MatMulNodeDispatcher_QANT::emit_dlpack_tensor_wrapper(
     stream << "// Create DLPack tensor wrapper for " << var_name << std::endl;
     stream << "int64_t " << var_name << "_shape[2] = {(int64_t)(" << rows << "), (int64_t)(" << cols << ")};"
            << std::endl;
-    stream << "int64_t " << var_name << "_strides[2] = {(int64_t)(" << stride_row << "), (int64_t)(" << stride_col << ")};" << std::endl;
+    stream << "int64_t " << var_name << "_strides[2] = {(int64_t)(" << stride_row << "), (int64_t)(" << stride_col
+           << ")};" << std::endl;
     stream << "DLManagedTensorVersioned " << var_name << ";" << std::endl;
     stream << var_name << ".version.major = DLPACK_MAJOR_VERSION;" << std::endl;
     stream << var_name << ".version.minor = DLPACK_MINOR_VERSION;" << std::endl;
@@ -103,7 +104,8 @@ void MatMulNodeDispatcher_QANT::dispatch_code(
             bound = language_extension_.expression(shape_b[b_idx]);
         }
 
-        stream << "for (size_t " << var << " = 0; " << var << " < (size_t)(" << bound << "); ++" << var << ") {" << std::endl;
+        stream << "for (size_t " << var << " = 0; " << var << " < (size_t)(" << bound << "); ++" << var << ") {"
+               << std::endl;
         stream.setIndent(stream.indent() + 4);
     }
 
@@ -156,8 +158,8 @@ void MatMulNodeDispatcher_QANT::dispatch_code(
     stream.setIndent(stream.indent() + 4);
     stream << "for (size_t __qj = 0; __qj < (size_t)(" << n_expr << "); ++__qj) {" << std::endl;
     stream.setIndent(stream.indent() + 4);
-    stream << "__qant_B_transposed[__qj * (" << k_expr << ") + __qi] = __qant_B_batch[__qi * (" << n_expr << ") + __qj];"
-           << std::endl;
+    stream << "__qant_B_transposed[__qj * (" << k_expr << ") + __qi] = __qant_B_batch[__qi * (" << n_expr
+           << ") + __qj];" << std::endl;
     stream.setIndent(stream.indent() - 4);
     stream << "}" << std::endl;
     stream.setIndent(stream.indent() - 4);
@@ -166,7 +168,9 @@ void MatMulNodeDispatcher_QANT::dispatch_code(
     std::string stride_a_row = language_extension_.expression(strides_a[strides_a.size() - 2]);
     std::string stride_a_col = language_extension_.expression(strides_a[strides_a.size() - 1]);
 
-    emit_dlpack_tensor_wrapper(stream, "__qant_tensor_A", "__qant_A_batch", m_expr, k_expr, stride_a_row, stride_a_col, "0");
+    emit_dlpack_tensor_wrapper(
+        stream, "__qant_tensor_A", "__qant_A_batch", m_expr, k_expr, stride_a_row, stride_a_col, "0"
+    );
     // Transposed B is always contiguous (N, K) with strides (K, 1)
     emit_dlpack_tensor_wrapper(stream, "__qant_tensor_B", "__qant_B_transposed", n_expr, k_expr, k_expr, "1", "0");
 
