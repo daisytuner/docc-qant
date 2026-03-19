@@ -1,6 +1,8 @@
 name: Release Tests
 
 on:
+  pull_request:
+    types: [opened, reopened, synchronize, ready_for_review]
   push:
     branches:
       - main
@@ -131,6 +133,9 @@ jobs:
       - name: MLIR Tests
         if: matrix.python-version == '3.11' || matrix.python-version == '3.12' # torch-mlir release is not yet supported on newer versions
         run: |
+          # Install MLIR/LLVM 19 development packages needed to build docc-ai
+          sudo apt install -y libmlir-19-dev mlir-19-tools
+
           # Install torch-mlir
           pip install torch-mlir torchvision --extra-index-url https://download.pytorch.org/whl/cpu -f https://github.com/llvm/torch-mlir-release/releases/expanded_assets/dev-wheels
 

@@ -132,10 +132,25 @@ pip install -e 3rdParty/docc/python/
 # Install docc-qant Python package
 pip install -e python/
 
+# Install pytorch support (docc-ai, requires additional system packages)
+pip install torch-mlir torchvision --extra-index-url https://download.pytorch.org/whl/cpu \
+  -f https://github.com/llvm/torch-mlir-release/releases/expanded_assets/dev-wheels
+pip install -e 3rdParty/docc/mlir/
+
 # Optional: Install development tools
 pip install pytest  # For running tests
 pip install black   # For code formatting
 ```
+
+##### MLIR Support
+
+Building the `docc-ai` (MLIR) Python package for pytorch support requires MLIR/LLVM 19 development packages:
+
+```bash
+sudo apt install -y libmlir-19-dev mlir-19-tools
+```
+
+These provide the MLIR CMake config files and headers needed by `3rdParty/docc/mlir/`. The MLIR wheel also requires `torch-mlir` (only supported on Python 3.11 and 3.12).
 
 #### 5. Verify Installation
 
