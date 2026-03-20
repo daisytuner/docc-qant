@@ -59,9 +59,11 @@ bool QantRemapping::accept(structured_control_flow::Block& node) {
                 continue;
             }
 
+            auto quantization = conv_node->primitive_type(dataflow);
             new_node = &builder_.add_library_node<math::tensor::QantConvNode>(
                 node,
                 conv_node->debug_info(),
+                quantization,
                 conv_node->shape(),
                 conv_node->kernel_shape(),
                 conv_node->strides(),

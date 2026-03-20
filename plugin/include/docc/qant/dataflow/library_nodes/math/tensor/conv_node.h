@@ -5,6 +5,7 @@
 
 #include "sdfg/function.h"
 #include "sdfg/serializer/json_serializer.h"
+#include "sdfg/types/type.h"
 
 namespace sdfg {
 namespace math {
@@ -13,12 +14,15 @@ namespace tensor {
 inline data_flow::LibraryNodeCode LibraryNodeType_QantConv("ml::QantConv");
 
 class QantConvNode : public ConvNode {
+    types::PrimitiveType quantization_;
+
 public:
     QantConvNode(
         size_t element_id,
         const DebugInfo& debug_info,
         const graph::Vertex vertex,
         data_flow::DataFlowGraph& parent,
+        const types::PrimitiveType quantization,
         const std::vector<symbolic::Expression>& shape,
         const std::vector<symbolic::Expression>& kernel_shape,
         const std::vector<symbolic::Expression>& strides,
@@ -31,6 +35,10 @@ public:
     void validate(const Function& function) const override;
 
     std::string toStr() const override;
+
+    types::PrimitiveType quantization() const;
+
+    void set_quantization(const types::PrimitiveType quant);
 };
 
 class QantConvNodeSerializer : public serializer::LibraryNodeSerializer {

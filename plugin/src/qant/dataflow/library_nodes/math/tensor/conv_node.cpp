@@ -14,6 +14,7 @@ QantConvNode::QantConvNode(
     const DebugInfo& debug_info,
     const graph::Vertex vertex,
     data_flow::DataFlowGraph& parent,
+    const types::PrimitiveType quantization,
     const std::vector<symbolic::Expression>& shape,
     const std::vector<symbolic::Expression>& kernel_shape,
     const std::vector<symbolic::Expression>& strides,
@@ -24,13 +25,18 @@ QantConvNode::QantConvNode(
 )
     : ConvNode(
           element_id, debug_info, vertex, parent, shape, kernel_shape, strides, pads, dilations, output_channels, group
-      ) {
+      ),
+      quantization_(quantization) {
     code_ = LibraryNodeType_QantConv;
     // Remove "B" connector inherited from ConvNode — the base dispatcher segfaults
     // on declared-but-unconnected connectors. validate() enforces that bias is not used.
     auto& ins = this->inputs();
     ins.erase(std::remove(ins.begin(), ins.end(), "B"), ins.end());
 }
+
+types::PrimitiveType QantConvNode::quantization() const { return quantization_; }
+
+void QantConvNode::set_quantization(const types::PrimitiveType quant) { quantization_ = quant; }
 
 void QantConvNode::validate(const Function& function) const {
     auto& graph = this->get_parent();
@@ -133,6 +139,8 @@ nlohmann::json QantConvNodeSerializer::serialize(const data_flow::LibraryNode& l
     j["output_channels"] = serializer.expression(conv_node.output_channels());
     j["group"] = serializer.expression(conv_node.group());
 
+    j["result_quant"] = conv_node.quantization();
+
     return j;
 }
 
@@ -187,11 +195,18 @@ data_flow::LibraryNode& QantConvNodeSerializer::deserialize(
         group = symbolic::parse(j["group"].get<std::string>());
     }
 
+    auto result_quant = j.find("result_quant");
+    types::PrimitiveType quantization = types::BFloat;
+    if (result_quant != j.end()) {
+        quantization = result_quant->get<types::PrimitiveType>();
+    }
+
     sdfg::serializer::JSONSerializer serializer;
     DebugInfo debug_info = serializer.json_to_debug_info(j["debug_info"]);
 
-    return builder.add_library_node<
-        QantConvNode>(parent, debug_info, shape, kernel_shape, strides, pads, dilations, output_channels, group);
+    return builder.add_library_node<QantConvNode>(
+        parent, debug_info, quantization, shape, kernel_shape, strides, pads, dilations, output_channels, group
+    );
 }
 
 } // namespace tensor

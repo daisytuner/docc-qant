@@ -2,13 +2,18 @@
 
 #include "sdfg/data_flow/access_node.h"
 #include "sdfg/types/pointer.h"
+#include "sdfg/types/scalar.h"
 #include "sdfg/types/tensor.h"
 
 #include <stdexcept>
 
+#include "docc/qant/passes/reduce_quantization_pass.h"
+
 namespace docc {
 namespace qant {
 namespace tensor {
+
+using namespace sdfg;
 
 ConvNodeDispatcher_QANT::ConvNodeDispatcher_QANT(
     sdfg::codegen::LanguageExtension& language_extension,
@@ -66,6 +71,18 @@ void ConvNodeDispatcher_QANT::dispatch_code(
     globals_stream << "#include <cstring>" << std::endl;
     globals_stream << "#include <stdexcept>" << std::endl;
 
+    // Get memlets to determine actual data types
+    auto& dflow = node_.get_parent();
+    auto* input_x_memlet = dflow.in_edge_for_connector(node_, "X");
+    auto* input_w_memlet = dflow.in_edge_for_connector(node_, "W");
+    auto out_edges = dflow.out_edges_for_connector(node_, "Y");
+    if (out_edges.size() != 1) {
+        throw std::runtime_error("QANT conv dispatcher: expected exactly 1 output edge for Y");
+    }
+    auto* output_memlet = out_edges.at(0);
+
+    const auto target_type = types::PrimitiveType::BFloat;
+
     // conv_fprop only supports 2D convolution
     auto& kernel_shape = conv_node_.kernel_shape();
     if (kernel_shape.size() != 2) {
@@ -98,15 +115,23 @@ void ConvNodeDispatcher_QANT::dispatch_code(
     // conv_fprop takes a single padding value; use pads[0] (begin padding for H)
     std::string padding_expr = pads.empty() ? "0" : language_extension_.expression(pads[0]);
 
-    // Compute output spatial dimensions:
-    // H_out = (H_in + pad_begin + pad_end - dilation * (kH - 1) - 1) / stride + 1
-    // For simplicity in size calculation, we assemble the expression directly
+    // Compute output spatial dimensions
     std::string h_out_expr = "((" + h_in_expr + " + " + padding_expr + " + " + padding_expr + " - " + dilation_expr +
                              " * (" + kh_expr + " - 1) - 1) / " + stride_expr + " + 1)";
     std::string w_out_expr = "((" + w_in_expr + " + " + padding_expr + " + " + padding_expr + " - " + dilation_expr +
                              " * (" + kw_expr + " - 1) - 1) / " + stride_expr + " + 1)";
 
+    std::string size_X = "(" + n_expr + ") * (" + c_in_expr + ") * (" + h_in_expr + ") * (" + w_in_expr + ")";
+    std::string size_W = "(" + c_out_expr + ") * (" + c_in_expr + ") * (" + kh_expr + ") * (" + kw_expr + ")";
     std::string size_Y = "(" + n_expr + ") * (" + c_out_expr + ") * " + h_out_expr + " * " + w_out_expr;
+
+    auto size_X_sym = symbolic::mul(symbolic::mul(shape[0], shape[1]), symbolic::mul(shape[2], shape[3]));
+    auto size_W_sym = symbolic::
+        mul(symbolic::mul(conv_node_.output_channels(), shape[1]), symbolic::mul(kernel_shape[0], kernel_shape[1]));
+
+    bool need_x_conversion = input_x_memlet->base_type().primitive_type() != target_type;
+    bool need_w_conversion = input_w_memlet->base_type().primitive_type() != target_type;
+    bool need_y_conversion = output_memlet->base_type().primitive_type() != target_type;
 
     stream << "{" << std::endl;
     stream.setIndent(stream.indent() + 4);
@@ -114,11 +139,55 @@ void ConvNodeDispatcher_QANT::dispatch_code(
     stream << "const uint32_t __qant_npu_id = 0;" << std::endl;
     stream << std::endl;
 
+    std::vector<std::string> temp_allocs;
+
+    CodegenOutput output{.main = stream, .globals = globals_stream, .library_snippet_factory = library_snippet_factory};
+
+    // Convert X to bfloat16 if needed
+    std::string x_bf16_var;
+    if (need_x_conversion) {
+        x_bf16_var = "__qant_X_bf16";
+        stream << "__bf16* " << x_bf16_var << " = (__bf16*)malloc((" << size_X << ") * sizeof(__bf16));" << std::endl;
+        temp_allocs.push_back(x_bf16_var);
+        QuantConversion::emit_conversion(
+            output,
+            language_extension_,
+            "X",
+            input_x_memlet->base_type(),
+            x_bf16_var,
+            types::Pointer(types::Scalar(target_type)),
+            symbolic::integer(0),
+            size_X_sym
+        );
+    } else {
+        x_bf16_var = "X";
+    }
+
+    // Convert W to bfloat16 if needed
+    std::string w_bf16_var;
+    if (need_w_conversion) {
+        w_bf16_var = "__qant_W_bf16";
+        stream << "__bf16* " << w_bf16_var << " = (__bf16*)malloc((" << size_W << ") * sizeof(__bf16));" << std::endl;
+        temp_allocs.push_back(w_bf16_var);
+        QuantConversion::emit_conversion(
+            output,
+            language_extension_,
+            "W",
+            input_w_memlet->base_type(),
+            w_bf16_var,
+            types::Pointer(types::Scalar(target_type)),
+            symbolic::integer(0),
+            size_W_sym
+        );
+    } else {
+        w_bf16_var = "W";
+    }
+
     // Features tensor: (N, C_in, H, W)
-    emit_dlpack_tensor_wrapper_4d(stream, "__qant_tensor_X", "X", n_expr, c_in_expr, h_in_expr, w_in_expr);
+    emit_dlpack_tensor_wrapper_4d(stream, "__qant_tensor_X", x_bf16_var, n_expr, c_in_expr, h_in_expr, w_in_expr);
 
     // Kernels tensor: (C_out, C_in, kH, kW)
-    emit_dlpack_tensor_wrapper_4d(stream, "__qant_tensor_W", "W", c_out_expr, c_in_expr, kh_expr, kw_expr);
+    emit_dlpack_tensor_wrapper_4d(stream, "__qant_tensor_W", w_bf16_var, c_out_expr, c_in_expr, kh_expr, kw_expr);
 
     // Call conv_fprop
     stream << "DLManagedTensorVersioned* __qant_result = qant_native_computing_toolkit::conv_fprop(" << std::endl;
@@ -137,7 +206,22 @@ void ConvNodeDispatcher_QANT::dispatch_code(
     stream.setIndent(stream.indent() - 4);
     stream << "}" << std::endl;
 
-    stream << "memcpy(Y, __qant_result->dl_tensor.data, (" << size_Y << ") * sizeof(__bf16));" << std::endl;
+    // Copy result back, converting from bfloat16 if needed
+    stream << "__bf16* __qant_result_data = reinterpret_cast<__bf16*>(__qant_result->dl_tensor.data);" << std::endl;
+    stream << "for (size_t __q_i = 0; __q_i < (size_t)(" << size_Y << "); ++__q_i) {" << std::endl;
+    stream.setIndent(stream.indent() + 4);
+    stream << "Y[__q_i] = ";
+    if (need_y_conversion) {
+        stream << "static_cast<" << language_extension_.primitive_type(output_memlet->base_type().primitive_type())
+               << ">(";
+    }
+    stream << "__qant_result_data[__q_i]";
+    if (need_y_conversion) {
+        stream << ")";
+    }
+    stream << ";" << std::endl;
+    stream.setIndent(stream.indent() - 4);
+    stream << "}" << std::endl;
     stream << std::endl;
 
     stream << "if (__qant_result->deleter) {" << std::endl;
@@ -145,6 +229,11 @@ void ConvNodeDispatcher_QANT::dispatch_code(
     stream << "__qant_result->deleter(__qant_result);" << std::endl;
     stream.setIndent(stream.indent() - 4);
     stream << "}" << std::endl;
+    stream << std::endl;
+
+    for (auto& alloc : temp_allocs) {
+        stream << "free(" << alloc << ");" << std::endl;
+    }
 
     stream.setIndent(stream.indent() - 4);
     stream << "}" << std::endl;

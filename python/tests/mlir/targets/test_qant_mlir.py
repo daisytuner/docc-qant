@@ -37,7 +37,7 @@ def test_inference_fp32():
         ref = model_ref(example_input)
 
     assert res.shape == (2, 2)
-    assert torch.allclose(res, ref, rtol=1e-1)
+    assert torch.allclose(res, ref, atol=2e-2)
 
 
 @pytest.mark.skip(reason="torch-mlir adds intermediary types that are unsupported")
@@ -69,3 +69,24 @@ def test_inference_bf16():
 
     assert res.shape == (2, 2)
     assert torch.allclose(res, ref, rtol=1e-1)
+
+
+def test_single_nobias_compile():
+    class SingleConv2dNet(nn.Module):
+        def __init__(self):
+            super().__init__()
+            self.conv = nn.Conv2d(3, 16, kernel_size=3, bias=False)
+
+        def forward(self, x: torch.Tensor):
+            return self.conv(x)
+
+    model = SingleConv2dNet()
+    model_ref = SingleConv2dNet()
+    model_ref.load_state_dict(model.state_dict())
+    example_input = torch.randn(1, 3, 32, 32)
+
+    program = torch.compile(model, backend="docc")
+    with torch.no_grad():
+        res = program(example_input)
+        res_ref = model_ref(example_input)
+    assert torch.allclose(res, res_ref, atol=2e-2)
