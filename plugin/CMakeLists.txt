@@ -9,6 +9,8 @@ set(SOURCE_FILES_PRIVATE
     src/qant/tensor/matmul.cpp
     src/qant/dataflow/library_nodes/math/tensor/conv_node.cpp
     src/qant/dataflow/library_nodes/math/tensor/matmul_node.cpp
+    src/qant/tensor/pooling.cpp
+    src/qant/dataflow/library_nodes/math/tensor/pooling_node.cpp
 )
 
 add_library(docc-qant-plugin STATIC
