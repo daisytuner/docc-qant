@@ -1,6 +1,7 @@
 #pragma once
 
 #include <sdfg/plugins/plugins.h>
+#include <sdfg/plugins/target_mapping.h>
 
 // Plugin registration at top-level namespace
 sdfg::plugins::Plugin register_docc_plugin();
@@ -19,6 +20,9 @@ std::string compile(
     const std::string& instrumentation_mode,
     bool capture_args
 );
+
+void expand(sdfg::StructuredSDFG& sdfg);
+
 
 } // namespace qant
 } // namespace docc

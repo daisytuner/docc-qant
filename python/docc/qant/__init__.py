@@ -1,7 +1,7 @@
 """Q.ANT target extension for the docc compiler."""
 
 from typing import Callable, Optional, Dict, Any
-from ._qant import register_plugin_qant, schedule_qant, compile_qant
+from ._qant import register_plugin_qant, schedule_qant, compile_qant, expand_qant
 
 
 def _schedule(sdfg, category: str, kwargs: Dict[str, Any]) -> None:
@@ -14,6 +14,11 @@ def _compile(
     return compile_qant(sdfg._ptr, out_dir, "qant", inst_mode, capture)
 
 
+def _expand(sdfg, category: str, kwargs: Dict[str, Any]) -> None:
+    expand_qant(sdfg._ptr, category)
+    sdfg.expand()
+
+
 def register_docc_plugin():
     from docc.sdfg import _plugin_context
 
@@ -21,4 +26,4 @@ def register_docc_plugin():
 
     from docc.python import register_target_overrides
 
-    register_target_overrides("qant", _schedule, _compile)
+    register_target_overrides("qant", _schedule, _compile, _expand)

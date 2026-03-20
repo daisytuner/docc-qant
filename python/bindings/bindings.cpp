@@ -44,6 +44,17 @@ PYBIND11_MODULE(_qant, m) {
     );
 
     m.def(
+        "expand_qant",
+        [](uintptr_t sdfg_ptr, const std::string& category) {
+            auto* sdfg = reinterpret_cast<sdfg::StructuredSDFG*>(sdfg_ptr);
+            docc::qant::expand(*sdfg);
+        },
+        py::arg("sdfg_ptr"),
+        py::arg("category"),
+        "Schedule an SDFG for Q.ANT target. Takes native pointer to StructuredSDFG."
+    );
+
+    m.def(
         "compile_qant",
         [](uintptr_t sdfg_ptr,
            const std::string& output_folder,
