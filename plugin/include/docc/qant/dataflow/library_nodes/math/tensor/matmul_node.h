@@ -76,6 +76,8 @@ inline data_flow::LibraryNodeCode LibraryNodeType_QantMatMul("ml::QantMatMul");
  * - Each (b, m, n) element is computed as: sum_k(A[b, m, k] * B[b, k, n])
  */
 class QantMatMulNode : public MatMulNode {
+    types::PrimitiveType quantization_;
+
 public:
     /**
      * @brief Construct a matmul node
@@ -95,6 +97,7 @@ public:
         const DebugInfo& debug_info,
         const graph::Vertex vertex,
         data_flow::DataFlowGraph& parent,
+        const types::PrimitiveType quantization,
         const symbolic::MultiExpression& shape_a,
         const symbolic::MultiExpression& shape_b,
         const symbolic::MultiExpression& strides_a = {},
@@ -106,6 +109,10 @@ public:
     void validate(const Function& function) const override;
 
     std::string toStr() const override;
+
+    types::PrimitiveType quantization() const;
+
+    void set_quantization(const types::PrimitiveType quant);
 };
 
 /**

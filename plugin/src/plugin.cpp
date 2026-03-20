@@ -50,7 +50,10 @@ void register_plugin(sdfg::plugins::Context& context) {
            const sdfg::data_flow::DataFlowGraph& data_flow_graph,
            const sdfg::data_flow::LibraryNode& node) {
             return std::make_unique<docc::qant::tensor::MatMulNodeDispatcher_QANT>(
-                language_extension, function, data_flow_graph, dynamic_cast<const sdfg::math::tensor::MatMulNode&>(node)
+                language_extension,
+                function,
+                data_flow_graph,
+                dynamic_cast<const sdfg::math::tensor::QantMatMulNode&>(node)
             );
         }
     );
@@ -73,6 +76,9 @@ void expand(sdfg::StructuredSDFG& sdfg) {
     expansion.register_pass<sdfg::passes::QantRemappingPass>();
 
     expansion.run(builder, analysis_manager);
+
+    ReduceQuantizationPass reduceQuantizationPass;
+    reduceQuantizationPass.run_pass(builder, analysis_manager);
 }
 
 void schedule(sdfg::StructuredSDFG& sdfg, const std::string& category) {

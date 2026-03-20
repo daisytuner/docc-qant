@@ -3,6 +3,7 @@
 set(SOURCE_FILES_PRIVATE
     src/plugin.cpp
     src/qant/blas/gemm.cpp
+    src/qant/passes/reduce_quantization_pass.cpp
     src/qant/passes/remapping_pass.cpp
     src/qant/tensor/matmul.cpp
     src/qant/dataflow/library_nodes/math/tensor/matmul_node.cpp
@@ -49,8 +50,8 @@ if(DOCC_QUANT_ENABLE_COVERAGE)
     target_link_options(docc-qant-plugin PUBLIC --coverage)
 endif()
 
-target_link_libraries(docc-qant-plugin 
-    PUBLIC 
+target_link_libraries(docc-qant-plugin
+    PUBLIC
         sdfg::sdfg
         sdfg::opt
 )
