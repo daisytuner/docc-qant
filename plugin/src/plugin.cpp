@@ -110,6 +110,9 @@ std::string compile(
     // from the base docc compilation flow. It is scheduled for that code to become more modular, such that it can be
     // called from here, just with additional options to override the options we need
 
+    auto opts = std::getenv("DOCC_DEBUG");
+    bool debug_build = opts != nullptr && std::string(opts).find("-g") != std::string::npos;
+
     fs::path build_path(output_folder);
     if (!fs::exists(build_path)) {
         fs::create_directories(build_path);
@@ -207,6 +210,9 @@ std::string compile(
 #endif
 
         cmd << " " << lib_file;
+        if (debug_build) {
+            cmd << " -g";
+        }
         cmd << " -o " << object_file;
         cmd << " -lm";
         int ret = std::system(cmd.str().c_str());
@@ -224,6 +230,9 @@ std::string compile(
             cmd << " -I" << package_include_path_str;
         }
         cmd << " " << source_path.string();
+        if (debug_build) {
+            cmd << " -g";
+        }
         cmd << " -o " << (build_path / (sdfg.name() + ".o")).string();
         DEBUG_PRINTLN("Compile: " << cmd.str());
         int ret = std::system(cmd.str().c_str());
