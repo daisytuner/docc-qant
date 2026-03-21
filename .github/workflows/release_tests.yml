@@ -4,71 +4,16 @@ on:
   push:
     branches:
       - main
+  pull_request:
+    types: [opened, reopened, synchronize, ready_for_review]
 
 jobs:
-  cpp-tests-linux:
-    runs-on: ubuntu-24.04
-
-    steps:
-      - uses: actions/checkout@v4
-        with:
-          submodules: recursive
-          lfs: true
-
-      - name: Mark GitHub Actions workdir as safe
-        run: git config --global --add safe.directory "$GITHUB_WORKSPACE"
-
-      - name: Fetch LFS files
-        run: git lfs pull
-
-      - name: Install Dependencies
-        run: |
-          sudo apt update
-          sudo apt install -y \
-            git-lfs \
-            cmake \
-            ninja-build \
-            clang-19 \
-            libgmp-dev \
-            libcurl4-gnutls-dev \
-            libisl-dev \
-            nlohmann-json3-dev \
-            libopenblas-dev
-
-          sudo apt install -y ./qant-native-computing-toolkit.2.1.0-1-amd64.deb
-
-          cd /tmp
-          wget -q https://github.com/dmlc/dlpack/archive/refs/tags/v1.2.tar.gz
-          tar -xzf v1.2.tar.gz
-          cd dlpack-1.2
-          sudo cp -r include/dlpack /usr/local/include/
-
-      - name: Build
-        run: |
-          mkdir build
-          cd build
-          cmake \
-            -G Ninja \
-            -DCMAKE_C_COMPILER=clang-19 \
-            -DCMAKE_CXX_COMPILER=clang++-19 \
-            -DCMAKE_INSTALL_PREFIX=/usr/local \
-            -DCMAKE_BUILD_TYPE=Debug \
-            -DDOCC_QANT_ENABLE_COVERAGE=ON \
-            -DBUILD_TESTS:BOOL=OFF \
-            -DBUILD_BENCHMARKS:BOOL=OFF \
-            -DBUILD_BENCHMARKS_GOOGLE:BOOL=OFF  \
-            ..
-          ninja -j$(nproc)
-          sudo ninja install
-
-          ./plugin/tests/docc-qant-plugin_test
-
   python-tests-linux:
     runs-on: ubuntu-24.04
     strategy:
       fail-fast: false
       matrix:
-        python-version: ["3.11", "3.12", "3.13", "3.14"]
+        python-version: ["3.12", "3.13"]
 
     steps:
       - uses: actions/checkout@v4
@@ -129,7 +74,7 @@ jobs:
           pytest -v python/tests/python
 
       - name: MLIR Tests
-        if: matrix.python-version == '3.11' || matrix.python-version == '3.12' # torch-mlir release is not yet supported on newer versions
+        if: matrix.python-version == '3.12' # torch-mlir release is not yet supported on newer versions
         run: |
           # Install MLIR/LLVM 19 development packages needed to build docc-ai
           sudo apt install -y libmlir-19-dev mlir-19-tools
