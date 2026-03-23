@@ -1,5 +1,6 @@
 #include "docc/qant/passes/reduce_quantization_pass.h"
 
+#include "docc/qant/dataflow/library_nodes/math/tensor/conv_node.h"
 #include "docc/qant/dataflow/library_nodes/math/tensor/matmul_node.h"
 #include "docc/qant/qant.h"
 #include "sdfg/codegen/dispatchers/node_dispatcher_registry.h"
@@ -38,6 +39,11 @@ bool ReduceQuantizationVisitor::try_reduce(
         }
 
         // queue edges!
+    } else if (code == sdfg::math::tensor::LibraryNodeType_QantConv) {
+        auto& conv_node = dynamic_cast<sdfg::math::tensor::QantConvNode&>(node);
+        if (conv_node.quantization() == sdfg::types::Float) {
+            conv_node.set_quantization(sdfg::types::BFloat);
+        }
     }
 
     return false;

@@ -1,12 +1,16 @@
 #include "docc/qant/passes/remapping_pass.h"
+#include "docc/qant/dataflow/library_nodes/math/tensor/conv_node.h"
 #include "docc/qant/dataflow/library_nodes/math/tensor/matmul_node.h"
 #include "docc/qant/qant.h"
 
 #include "sdfg/data_flow/library_node.h"
 #include "sdfg/data_flow/library_nodes/math/math.h"
+#include "sdfg/data_flow/library_nodes/math/tensor/conv_node.h"
 #include "sdfg/data_flow/library_nodes/math/tensor/matmul_node.h"
 #include "sdfg/types/pointer.h"
 #include "sdfg/types/tensor.h"
+
+#include <stdexcept>
 
 namespace sdfg {
 namespace passes {
@@ -38,6 +42,35 @@ bool QantRemapping::accept(structured_control_flow::Block& node) {
                 matmul_node->strides_b(),
                 matmul_node->offset_a(),
                 matmul_node->offset_b()
+            );
+            new_node->implementation_type() = docc::qant::ImplementationType_QANT;
+        } else if (library_node->code() == math::tensor::LibraryNodeType_Conv.value()) {
+            auto* conv_node = dynamic_cast<math::tensor::ConvNode*>(library_node);
+
+            // QANT conv_fprop does not support bias — skip if "B" is connected
+            bool has_bias = false;
+            for (auto& iedge : dataflow.in_edges(*conv_node)) {
+                if (iedge.dst_conn() == "B") {
+                    has_bias = true;
+                    break;
+                }
+            }
+            if (has_bias) {
+                continue;
+            }
+
+            auto quantization = conv_node->primitive_type(dataflow);
+            new_node = &builder_.add_library_node<math::tensor::QantConvNode>(
+                node,
+                conv_node->debug_info(),
+                quantization,
+                conv_node->shape(),
+                conv_node->kernel_shape(),
+                conv_node->strides(),
+                conv_node->pads(),
+                conv_node->dilations(),
+                conv_node->output_channels(),
+                conv_node->group()
             );
             new_node->implementation_type() = docc::qant::ImplementationType_QANT;
         } else if (library_node->code() == sdfg::math::blas::LibraryNodeType_GEMM.value()) {
