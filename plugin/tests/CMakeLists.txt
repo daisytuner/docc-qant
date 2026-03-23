@@ -9,6 +9,7 @@ FetchContent_MakeAvailable(googletest)
 set(TEST_FILES
     qant/tensor/conv_test.cpp
     qant/tensor/matmul_test.cpp
+    qant/tensor/pooling_test.cpp
     test.cpp
 )
 

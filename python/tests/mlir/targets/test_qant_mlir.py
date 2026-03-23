@@ -120,3 +120,47 @@ def test_single_nobias_compile():
         res = program(example_input)
         res_ref = model_ref(example_input)
     assert torch.allclose(res, res_ref, atol=2e-2)
+
+
+def test_maxpool2d_compile():
+    class MaxPoolNet(nn.Module):
+        def __init__(self):
+            super().__init__()
+            self.pool = nn.MaxPool2d(kernel_size=2, stride=2)
+
+        def forward(self, x: torch.Tensor):
+            return self.pool(x)
+
+    model = MaxPoolNet()
+    model.eval()
+    model_ref = MaxPoolNet()
+    model_ref.eval()
+    example_input = torch.randn(1, 1, 4, 4)
+
+    program = torch.compile(model, backend="docc")
+    with torch.no_grad():
+        res = program(example_input)
+        res_ref = model_ref(example_input)
+    assert torch.allclose(res, res_ref, atol=1e-2)
+
+
+def test_avgpool2d_compile():
+    class AvgPoolNet(nn.Module):
+        def __init__(self):
+            super().__init__()
+            self.pool = nn.AvgPool2d(kernel_size=2, stride=2)
+
+        def forward(self, x: torch.Tensor):
+            return self.pool(x)
+
+    model = AvgPoolNet()
+    model.eval()
+    model_ref = AvgPoolNet()
+    model_ref.eval()
+    example_input = torch.randn(1, 1, 4, 4)
+
+    program = torch.compile(model, backend="docc")
+    with torch.no_grad():
+        res = program(example_input)
+        res_ref = model_ref(example_input)
+    assert torch.allclose(res, res_ref, atol=1e-2)
