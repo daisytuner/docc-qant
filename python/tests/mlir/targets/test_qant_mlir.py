@@ -210,4 +210,3 @@ def test_avgpool2d_batched_compile():
         res_ref = model_ref(example_input)
     assert res.shape == (4, 2, 3, 3)
     assert torch.allclose(res, res_ref, atol=1e-2)
-    assert torch.allclose(res, res_ref, atol=1e-2)
