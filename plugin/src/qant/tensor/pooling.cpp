@@ -111,7 +111,6 @@ void PoolingNodeDispatcher_QANT::dispatch_code(
                              stride_expr + " + 1)";
 
     std::string size_X = "(" + n_expr + ") * (" + c_expr + ") * (" + h_in_expr + ") * (" + w_in_expr + ")";
-    std::string size_Y = "(" + n_expr + ") * (" + c_expr + ") * " + h_out_expr + " * " + w_out_expr;
 
     auto size_X_sym = symbolic::mul(symbolic::mul(shape[0], shape[1]), symbolic::mul(shape[2], shape[3]));
 
@@ -148,11 +147,24 @@ void PoolingNodeDispatcher_QANT::dispatch_code(
         x_bf16_var = "X";
     }
 
-    // Features tensor: (N, C, H, W)
-    emit_dlpack_tensor_wrapper_4d(stream, "__qant_tensor_X", x_bf16_var, n_expr, c_expr, h_in_expr, w_in_expr);
+    // Per-sample sizes (the toolkit does not support n_batches > 1)
+    std::string sample_size_X = "(" + c_expr + ") * (" + h_in_expr + ") * (" + w_in_expr + ")";
+    std::string sample_size_Y = "(" + c_expr + ") * " + h_out_expr + " * " + w_out_expr;
+
+    auto mode = pooling_node_.mode();
+    bool undo_avg = (mode == math::tensor::PoolingMode::Sum);
+
+    // Loop over the batch dimension, calling the toolkit once per sample
+    stream << "for (size_t __qant_batch = 0; __qant_batch < (size_t)(" << n_expr << "); ++__qant_batch) {" << std::endl;
+    stream.setIndent(stream.indent() + 4);
+
+    // Pointer to current sample in the (possibly converted) input buffer
+    stream << "__bf16* __qant_X_sample = " << x_bf16_var << " + __qant_batch * (" << sample_size_X << ");" << std::endl;
+
+    // Create a single-sample 4D tensor wrapper [1, C, H, W]
+    emit_dlpack_tensor_wrapper_4d(stream, "__qant_tensor_X", "__qant_X_sample", "1", c_expr, h_in_expr, w_in_expr);
 
     // Call pooling function based on mode
-    auto mode = pooling_node_.mode();
     stream << "DLManagedTensorVersioned* __qant_result = ";
     if (mode == math::tensor::PoolingMode::Max) {
         stream << "qant_native_computing_toolkit::maxpool2d_fprop(" << std::endl;
@@ -164,8 +176,6 @@ void PoolingNodeDispatcher_QANT::dispatch_code(
         stream << "    (size_t)(" << stride_expr << ")" << std::endl;
         stream << ");" << std::endl;
     } else {
-        // Sum or Avg → avgpool2d_fprop
-        // count_include_pad = true for Sum mode, false for Avg
         std::string count_include_pad = (mode == math::tensor::PoolingMode::Sum) ? "true" : "false";
         stream << "qant_native_computing_toolkit::avgpool2d_fprop(" << std::endl;
         stream << "    __qant_npu_id," << std::endl;
@@ -185,15 +195,12 @@ void PoolingNodeDispatcher_QANT::dispatch_code(
     stream.setIndent(stream.indent() - 4);
     stream << "}" << std::endl;
 
-    // Copy result back, converting from bfloat16 if needed
-    // For Sum mode, avgpool2d_fprop already divided by kernel_area, but the
-    // surrounding DOCC code will also divide by kernel_area. Multiply by kH*kW
-    // to undo the averaging so the DOCC division gives the correct result.
-    bool undo_avg = (mode == math::tensor::PoolingMode::Sum);
+    // Copy per-sample result into the correct offset of Y
     stream << "__bf16* __qant_result_data = reinterpret_cast<__bf16*>(__qant_result->dl_tensor.data);" << std::endl;
-    stream << "for (size_t __q_i = 0; __q_i < (size_t)(" << size_Y << "); ++__q_i) {" << std::endl;
+    stream << "size_t __qant_y_offset = __qant_batch * (" << sample_size_Y << ");" << std::endl;
+    stream << "for (size_t __q_i = 0; __q_i < (size_t)(" << sample_size_Y << "); ++__q_i) {" << std::endl;
     stream.setIndent(stream.indent() + 4);
-    stream << "Y[__q_i] = ";
+    stream << "Y[__qant_y_offset + __q_i] = ";
     if (need_y_conversion) {
         stream << "static_cast<" << language_extension_.primitive_type(output_memlet->base_type().primitive_type())
                << ">(";
@@ -213,6 +220,10 @@ void PoolingNodeDispatcher_QANT::dispatch_code(
     stream << "if (__qant_result->deleter) {" << std::endl;
     stream.setIndent(stream.indent() + 4);
     stream << "__qant_result->deleter(__qant_result);" << std::endl;
+    stream.setIndent(stream.indent() - 4);
+    stream << "}" << std::endl;
+
+    // End batch loop
     stream.setIndent(stream.indent() - 4);
     stream << "}" << std::endl;
     stream << std::endl;
