@@ -50,7 +50,7 @@ public:
      */
     symbolic::Expression get_stride_innermost(int i) const { return strides_.at(strides_.size() - 1 - i); }
 
-    size_t dims() const { return shape_.size(); }
+    int dims() const { return shape_.size(); }
 
     static TensorLayout deserialize_from_json(const nlohmann::json& j);
 

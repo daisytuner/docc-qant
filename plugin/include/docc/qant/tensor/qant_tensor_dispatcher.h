@@ -19,7 +19,8 @@ protected:
         sdfg::codegen::PrettyPrinter& stream,
         const std::string& var_name,
         const std::string& data_ptr,
-        const sdfg::math::tensor::TensorLayout& layout
+        const sdfg::math::tensor::TensorLayout& layout,
+        int visible_dims
     );
 
     std::string calculate_tensor_start_offset(
@@ -38,6 +39,9 @@ protected:
         std::vector<std::string>& tmp_allocs
     );
 
+    /**
+     * For more than 2D: only the innermost dims are considered
+     */
     sdfg::math::tensor::TensorLayout transposed_layout_linear(const sdfg::math::tensor::TensorLayout& layout);
 
     sdfg::math::tensor::TensorLayout ensure_input_in_required_qant_format(

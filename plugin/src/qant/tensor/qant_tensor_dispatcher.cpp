@@ -20,18 +20,19 @@ void QantTensorLibNodeDispatcher::emit_dlpack_tensor_wrapper(
     sdfg::codegen::PrettyPrinter& stream,
     const std::string& var_name,
     const std::string& data_ptr,
-    const math::tensor::TensorLayout& layout
+    const math::tensor::TensorLayout& layout,
+    int visible_dims
 ) {
     stream << "// Create DLPack tensor wrapper for " << var_name << std::endl;
-    size_t dims = layout.dims();
-    stream << "int64_t " << var_name << "_shape[" << dims << "] = {";
-    for (int i = 0; i < dims; ++i) {
+    int dims = layout.dims();
+    stream << "int64_t " << var_name << "_shape[" << visible_dims << "] = {";
+    for (int i = (dims - visible_dims); i < dims; ++i) {
         stream << "static_cast<int64_t>(" << language_extension_.expression(layout.shape().at(i)) << ")";
         if (i < dims - 1) stream << ", ";
     }
     stream << "};" << std::endl;
-    stream << "int64_t " << var_name << "_strides[" << dims << "] = {";
-    for (int i = 0; i < dims; ++i) {
+    stream << "int64_t " << var_name << "_strides[" << visible_dims << "] = {";
+    for (int i = (dims - visible_dims); i < dims; ++i) {
         stream << "static_cast<int64_t>(" << language_extension_.expression(layout.strides().at(i)) << ")";
         if (i < dims - 1) stream << ", ";
     }
@@ -45,7 +46,7 @@ void QantTensorLibNodeDispatcher::emit_dlpack_tensor_wrapper(
     stream << var_name << ".dl_tensor.data = (void*)" << data_ptr << ";" << std::endl;
     stream << var_name << ".dl_tensor.device.device_type = kDLCPU;" << std::endl;
     stream << var_name << ".dl_tensor.device.device_id = 0;" << std::endl;
-    stream << var_name << ".dl_tensor.ndim = " << dims << ";" << std::endl;
+    stream << var_name << ".dl_tensor.ndim = " << visible_dims << ";" << std::endl;
     stream << var_name << ".dl_tensor.dtype.code = kDLBfloat;" << std::endl;
     stream << var_name << ".dl_tensor.dtype.bits = 16;" << std::endl;
     stream << var_name << ".dl_tensor.dtype.lanes = 1;" << std::endl;
@@ -87,7 +88,9 @@ void QantTensorLibNodeDispatcher::alloc_arr(
 sdfg::math::tensor::TensorLayout QantTensorLibNodeDispatcher::
     transposed_layout_linear(const sdfg::math::tensor::TensorLayout& layout) {
     symbolic::MultiExpression rev_shape;
-    for (int i = static_cast<int>(layout.dims()) - 1; i >= 0; --i) {
+    int outermost_dim = layout.dims() - 2;
+
+    for (int i = layout.dims() - 1; i >= outermost_dim; --i) {
         rev_shape.push_back(layout.shape().at(i));
     }
 
@@ -143,6 +146,7 @@ math::tensor::TensorLayout QantTensorLibNodeDispatcher::ensure_input_in_required
         output.main << "}" << std::endl;
         output.main.setIndent(output.main.indent() - 4);
         output.main << "}" << std::endl;
+        return transposed_layout_linear(layout); // we changed it, so update layout
     } else if (input_type.primitive_type() != target_type) { // only type different
         alloc_arr(output.main, language_extension_, target_size, target_var, tmp_allocs);
         QuantConversion::emit_conversion(
@@ -159,7 +163,7 @@ math::tensor::TensorLayout QantTensorLibNodeDispatcher::ensure_input_in_required
         output.main << "__bf16* " << target_var << " = " << src_var << ";" << std::endl;
     }
 
-    if (transposed) {
+    if (transposed) { // only if we are hiding an accepted transposed input, do we need to update
         return transposed_layout_linear(layout);
     } else {
         return layout;

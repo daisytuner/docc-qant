@@ -41,12 +41,18 @@ bool QantRemapping::accept(structured_control_flow::Block& node) {
                 math::tensor::TensorLayout(matmul_node->shape_b(), matmul_node->strides_b(), matmul_node->offset_b());
             if (!layout_a.has_linear_accesses_no_padding() && !layout_a.has_transposed_strides_no_padding() ||
                 !layout_b.has_linear_accesses_no_padding() && !layout_b.has_transposed_strides_no_padding()) {
-                continue;
+                if (report_) {
+                    report_->transform_impossible("QantMatmul", "non-trivial layout");
+                }
+                continue; // cannot handle layouts, which we cannot classify into transposed or !transposed
             }
             auto quantization = matmul_node->primitive_type(dataflow);
             new_node = &builder_.add_library_node<
                 math::tensor::QantMatMulNode>(node, matmul_node->debug_info(), quantization, layout_a, layout_b);
             new_node->implementation_type() = docc::qant::ImplementationType_QANT;
+            if (report_) {
+                report_->transform_applied("QantMatmul");
+            }
         } else if (library_node->code() == math::tensor::LibraryNodeType_Conv.value()) {
             auto* conv_node = dynamic_cast<math::tensor::ConvNode*>(library_node);
 
@@ -59,6 +65,9 @@ bool QantRemapping::accept(structured_control_flow::Block& node) {
                 }
             }
             if (has_bias) {
+                if (report_) {
+                    report_->transform_impossible("QantConv", "has_bias");
+                }
                 continue;
             }
 
@@ -76,6 +85,9 @@ bool QantRemapping::accept(structured_control_flow::Block& node) {
                 conv_node->group()
             );
             new_node->implementation_type() = docc::qant::ImplementationType_QANT;
+            if (report_) {
+                report_->transform_applied("QantConv");
+            }
         } else if (library_node->code() == math::tensor::LibraryNodeType_Pooling.value()) {
             auto* pooling_node = dynamic_cast<math::tensor::PoolingNode*>(library_node);
             auto quantization = pooling_node->primitive_type(dataflow);
@@ -91,11 +103,17 @@ bool QantRemapping::accept(structured_control_flow::Block& node) {
                 pooling_node->dilations()
             );
             new_node->implementation_type() = docc::qant::ImplementationType_QANT;
+            if (report_) {
+                report_->transform_applied("QantPooling");
+            }
         } else if (library_node->code() == sdfg::math::blas::LibraryNodeType_GEMM.value()) {
             auto* gemm_node = dynamic_cast<sdfg::math::blas::GEMMNode*>(library_node);
 
             gemm_node->implementation_type() = docc::qant::ImplementationType_QANT;
             made_changes = true;
+            if (report_) {
+                report_->transform_applied("QantGemm");
+            }
         }
 
         if (!new_node) {
