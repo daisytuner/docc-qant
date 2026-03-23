@@ -18,10 +18,12 @@ namespace sdfg {
 namespace passes {
 
 QantRemapping::QantRemapping(builder::StructuredSDFGBuilder& builder, analysis::AnalysisManager& analysis_manager)
-    : visitor::StructuredSDFGVisitor(builder, analysis_manager) {}
+    : visitor::NonStoppingStructuredSDFGVisitor(builder, analysis_manager) {}
 
 bool QantRemapping::accept(structured_control_flow::Block& node) {
     auto& dataflow = node.dataflow();
+
+    bool made_changes = false;
 
     for (auto* library_node : dataflow.library_nodes()) {
         data_flow::LibraryNode* new_node = nullptr;
@@ -33,18 +35,17 @@ bool QantRemapping::accept(structured_control_flow::Block& node) {
 
         if (library_node->code() == math::tensor::LibraryNodeType_MatMul.value()) {
             auto* matmul_node = dynamic_cast<math::tensor::MatMulNode*>(library_node);
+            auto layout_a =
+                math::tensor::TensorLayout(matmul_node->shape_a(), matmul_node->strides_a(), matmul_node->offset_a());
+            auto layout_b =
+                math::tensor::TensorLayout(matmul_node->shape_b(), matmul_node->strides_b(), matmul_node->offset_b());
+            if (!layout_a.has_linear_accesses_no_padding() && !layout_a.has_transposed_strides_no_padding() ||
+                !layout_b.has_linear_accesses_no_padding() && !layout_b.has_transposed_strides_no_padding()) {
+                continue;
+            }
             auto quantization = matmul_node->primitive_type(dataflow);
-            new_node = &builder_.add_library_node<math::tensor::QantMatMulNode>(
-                node,
-                matmul_node->debug_info(),
-                quantization,
-                matmul_node->shape_a(),
-                matmul_node->shape_b(),
-                matmul_node->strides_a(),
-                matmul_node->strides_b(),
-                matmul_node->offset_a(),
-                matmul_node->offset_b()
-            );
+            new_node = &builder_.add_library_node<
+                math::tensor::QantMatMulNode>(node, matmul_node->debug_info(), quantization, layout_a, layout_b);
             new_node->implementation_type() = docc::qant::ImplementationType_QANT;
         } else if (library_node->code() == math::tensor::LibraryNodeType_Conv.value()) {
             auto* conv_node = dynamic_cast<math::tensor::ConvNode*>(library_node);
@@ -94,7 +95,7 @@ bool QantRemapping::accept(structured_control_flow::Block& node) {
             auto* gemm_node = dynamic_cast<sdfg::math::blas::GEMMNode*>(library_node);
 
             gemm_node->implementation_type() = docc::qant::ImplementationType_QANT;
-            return true;
+            made_changes = true;
         }
 
         if (!new_node) {
@@ -136,10 +137,10 @@ bool QantRemapping::accept(structured_control_flow::Block& node) {
         }
         builder_.remove_node(node, *library_node);
 
-        return true;
+        made_changes = true;
     }
 
-    return false;
+    return made_changes;
 }
 
 } // namespace passes

@@ -7,7 +7,7 @@
 namespace sdfg {
 namespace passes {
 
-class QantRemapping : public visitor::StructuredSDFGVisitor {
+class QantRemapping : public visitor::NonStoppingStructuredSDFGVisitor {
 public:
     QantRemapping(builder::StructuredSDFGBuilder& builder, analysis::AnalysisManager& analysis_manager);
 

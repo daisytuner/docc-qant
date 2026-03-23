@@ -7,8 +7,10 @@ set(SOURCE_FILES_PRIVATE
     src/qant/passes/remapping_pass.cpp
     src/qant/tensor/conv.cpp
     src/qant/tensor/matmul.cpp
+    src/qant/tensor/qant_tensor_dispatcher.cpp
     src/qant/dataflow/library_nodes/math/tensor/conv_node.cpp
     src/qant/dataflow/library_nodes/math/tensor/matmul_node.cpp
+    src/qant/dataflow/library_nodes/math/tensor/tensor_layout.cpp
     src/qant/tensor/pooling.cpp
     src/qant/dataflow/library_nodes/math/tensor/pooling_node.cpp
 )

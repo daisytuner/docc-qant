@@ -40,6 +40,7 @@
 
 #include "sdfg/data_flow/library_nodes/math/tensor/matmul_node.h"
 #include "sdfg/data_flow/library_nodes/math/tensor/tensor_node.h"
+#include "tensor_layout.h"
 
 #include "sdfg/function.h"
 #include "sdfg/serializer/json_serializer.h"
@@ -77,6 +78,9 @@ inline data_flow::LibraryNodeCode LibraryNodeType_QantMatMul("ml::QantMatMul");
  */
 class QantMatMulNode : public MatMulNode {
     types::PrimitiveType quantization_;
+    TensorLayout layout_a_;
+    TensorLayout layout_b_;
+    // TensorLayout layout_y_; // we are not using that yet
 
 public:
     /**
@@ -85,12 +89,6 @@ public:
      * @param debug_info Debug information
      * @param vertex Graph vertex
      * @param parent Parent dataflow graph
-     * @param shape_a Shape of input tensor A [..., M, K]
-     * @param shape_b Shape of input tensor B [..., K, N]
-     * @param strides_a Strides for tensor A (defaults to row-major contiguous)
-     * @param strides_b Strides for tensor B (defaults to row-major contiguous)
-     * @param offset_a Offset into tensor A in elements (defaults to 0)
-     * @param offset_b Offset into tensor B in elements (defaults to 0)
      */
     QantMatMulNode(
         size_t element_id,
@@ -98,12 +96,9 @@ public:
         const graph::Vertex vertex,
         data_flow::DataFlowGraph& parent,
         const types::PrimitiveType quantization,
-        const symbolic::MultiExpression& shape_a,
-        const symbolic::MultiExpression& shape_b,
-        const symbolic::MultiExpression& strides_a = {},
-        const symbolic::MultiExpression& strides_b = {},
-        symbolic::Expression offset_a = symbolic::integer(0),
-        symbolic::Expression offset_b = symbolic::integer(0)
+        const TensorLayout& layout_a,
+        const TensorLayout& layout_b
+        // layout of result?
     );
 
     void validate(const Function& function) const override;
@@ -113,6 +108,10 @@ public:
     types::PrimitiveType quantization() const;
 
     void set_quantization(const types::PrimitiveType quant);
+
+    const TensorLayout& layout_a() const;
+
+    const TensorLayout& layout_b() const;
 };
 
 /**
