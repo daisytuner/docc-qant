@@ -19,9 +19,9 @@ ConvNodeDispatcher_QANT::ConvNodeDispatcher_QANT(
     sdfg::codegen::LanguageExtension& language_extension,
     const sdfg::Function& function,
     const sdfg::data_flow::DataFlowGraph& data_flow_graph,
-    const sdfg::math::tensor::ConvNode& node
+    const sdfg::math::tensor::QantConvNode& node
 )
-    : sdfg::codegen::LibraryNodeDispatcher(language_extension, function, data_flow_graph, node), conv_node_(node) {}
+    : QantTensorLibNodeDispatcher(language_extension, function, data_flow_graph, node), conv_node_(node) {}
 
 void ConvNodeDispatcher_QANT::emit_dlpack_tensor_wrapper_4d(
     sdfg::codegen::PrettyPrinter& stream,

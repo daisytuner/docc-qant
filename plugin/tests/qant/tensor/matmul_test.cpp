@@ -6,6 +6,8 @@
 
 #include <sdfg/passes/dataflow/tensor_to_pointer_conversion.h>
 #include <sdfg/passes/targets/target_mapping_pass.h>
+
+#include "../../../../3rdParty/docc/sdfg/tests/sdfg_debug_dump.h"
 #include "sdfg/analysis/analysis.h"
 #include "sdfg/builder/structured_sdfg_builder.h"
 #include "sdfg/data_flow/library_nodes/math/tensor/matmul_node.h"
@@ -75,12 +77,16 @@ TEST(MatMulTest, MatMul_2D_SimpleMatrix) {
 
     sdfg.validate();
 
+    dump_sdfg(sdfg, "0.before-remap");
+
     analysis::AnalysisManager analysis_manager(sdfg);
 
     // Run expansion pass
     sdfg::passes::Pipeline expansion("QantRemapping");
     expansion.register_pass<sdfg::passes::QantRemappingPass>();
     expansion.run(builder, analysis_manager);
+
+    dump_sdfg(sdfg, "1.after-remap");
 
     sdfg.validate();
 
@@ -93,9 +99,13 @@ TEST(MatMulTest, MatMul_2D_SimpleMatrix) {
     sdfg::passes::TensorToPointerConversionPass tensor_to_pointer_conversion_pass;
     tensor_to_pointer_conversion_pass.run(builder, analysis_manager);
 
+    dump_sdfg(sdfg, "2.after-t2p");
+
     sdfg.validate();
 
     docc::qant::schedule(sdfg, "qant");
+
+    dump_sdfg(sdfg, "3.after-sched");
 
     sdfg.validate();
 
@@ -177,6 +187,8 @@ TEST(MatMulTest, MatMul_3D_Batched) {
     EXPECT_TRUE(symbolic::eq(matmul_node.n(), symbolic::integer(6)));
     EXPECT_TRUE(symbolic::eq(matmul_node.k(), symbolic::integer(8)));
 
+    dump_sdfg(sdfg, "0.before");
+
     analysis::AnalysisManager analysis_manager_3d(sdfg);
 
     sdfg.validate();
@@ -185,6 +197,8 @@ TEST(MatMulTest, MatMul_3D_Batched) {
     sdfg::passes::Pipeline expansion("QantRemapping");
     expansion.register_pass<sdfg::passes::QantRemappingPass>();
     expansion.run(builder, analysis_manager_3d);
+
+    dump_sdfg(sdfg, "1.expand");
 
     sdfg.validate();
 
@@ -197,9 +211,13 @@ TEST(MatMulTest, MatMul_3D_Batched) {
     sdfg::passes::TensorToPointerConversionPass tensor_to_pointer_conversion_pass;
     tensor_to_pointer_conversion_pass.run(builder, analysis_manager_3d);
 
+    dump_sdfg(sdfg, "2.t2p");
+
     sdfg.validate();
 
     docc::qant::schedule(sdfg, "qant");
+
+    dump_sdfg(sdfg, "3.sched");
 
     sdfg.validate();
 

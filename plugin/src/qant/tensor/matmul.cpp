@@ -20,57 +20,7 @@ MatMulNodeDispatcher_QANT::MatMulNodeDispatcher_QANT(
     const sdfg::data_flow::DataFlowGraph& data_flow_graph,
     const sdfg::math::tensor::QantMatMulNode& node
 )
-    : sdfg::codegen::LibraryNodeDispatcher(language_extension, function, data_flow_graph, node), matmul_node_(node) {}
-
-void MatMulNodeDispatcher_QANT::emit_dlpack_tensor_wrapper(
-    sdfg::codegen::PrettyPrinter& stream,
-    const std::string& var_name,
-    const std::string& data_ptr,
-    const std::string& rows,
-    const std::string& cols,
-    const std::string& stride_row,
-    const std::string& stride_col,
-    const std::string& offset
-) {
-    stream << "// Create DLPack tensor wrapper for " << var_name << std::endl;
-    stream << "int64_t " << var_name << "_shape[2] = {(int64_t)(" << rows << "), (int64_t)(" << cols << ")};"
-           << std::endl;
-    stream << "int64_t " << var_name << "_strides[2] = {(int64_t)(" << stride_row << "), (int64_t)(" << stride_col
-           << ")};" << std::endl;
-    stream << "DLManagedTensorVersioned " << var_name << ";" << std::endl;
-    stream << var_name << ".version.major = DLPACK_MAJOR_VERSION;" << std::endl;
-    stream << var_name << ".version.minor = DLPACK_MINOR_VERSION;" << std::endl;
-    stream << var_name << ".manager_ctx = nullptr;" << std::endl;
-    stream << var_name << ".deleter = nullptr;" << std::endl;
-    stream << var_name << ".flags = 0;" << std::endl;
-    stream << var_name << ".dl_tensor.data = (void*)" << data_ptr << ";" << std::endl;
-    stream << var_name << ".dl_tensor.device.device_type = kDLCPU;" << std::endl;
-    stream << var_name << ".dl_tensor.device.device_id = 0;" << std::endl;
-    stream << var_name << ".dl_tensor.ndim = 2;" << std::endl;
-    stream << var_name << ".dl_tensor.dtype.code = kDLBfloat;" << std::endl;
-    stream << var_name << ".dl_tensor.dtype.bits = 16;" << std::endl;
-    stream << var_name << ".dl_tensor.dtype.lanes = 1;" << std::endl;
-    stream << var_name << ".dl_tensor.shape = " << var_name << "_shape;" << std::endl;
-    stream << var_name << ".dl_tensor.strides = " << var_name << "_strides;" << std::endl;
-    stream << var_name << ".dl_tensor.byte_offset = (uint64_t)(" << offset << ") * sizeof(__bf16);" << std::endl;
-    stream << std::endl;
-}
-
-std::string MatMulNodeDispatcher_QANT::calculate_tensor_start_offset(
-    sdfg::symbolic::Expression tensor_offset,
-    const sdfg::symbolic::MultiExpression& strides,
-    size_t batch_dims,
-    size_t max_batch_dims,
-    std::vector<std::string> batch_vars
-) {
-    std::string offset = language_extension_.expression(tensor_offset);
-    for (size_t i = 0; i < batch_dims; ++i) {
-        size_t batch_idx = max_batch_dims - batch_dims + i;
-        std::string stride = language_extension_.expression(strides[i]);
-        offset = "(" + offset + ") + " + batch_vars[batch_idx] + " * (" + stride + ")";
-    }
-    return offset;
-}
+    : QantTensorLibNodeDispatcher(language_extension, function, data_flow_graph, node), matmul_node_(node) {}
 
 
 const sdfg::data_flow::Memlet* require_unique_output_edge(
@@ -81,18 +31,6 @@ const sdfg::data_flow::Memlet* require_unique_output_edge(
         throw std::runtime_error("QANT MatMulNodeDispatcher_QANT: expected 1 output edge for " + conn);
     }
     return edges.at(0);
-}
-
-void MatMulNodeDispatcher_QANT::alloc_arr(
-    sdfg::codegen::PrettyPrinter& stream,
-    codegen::LanguageExtension& lang_ext,
-    symbolic::Expression size,
-    const std::string& var,
-    std::vector<std::string>& tmp_allocs
-) {
-    stream << "__bf16* " << var << " = (__bf16*)malloc((" << lang_ext.expression(size) << ") * sizeof(__bf16));"
-           << std::endl;
-    tmp_allocs.push_back(var);
 }
 
 void MatMulNodeDispatcher_QANT::dispatch_code(
@@ -131,13 +69,11 @@ void MatMulNodeDispatcher_QANT::dispatch_code(
     stream << std::endl;
 
     // Compute batch dimensions (all except last 2), mirroring MatMulNode::expand()
-    auto& shape_a = matmul_node_.shape_a();
-    auto& shape_b = matmul_node_.shape_b();
-    auto& strides_a = matmul_node_.strides_a();
-    auto& strides_b = matmul_node_.strides_b();
+    auto& layout_a = matmul_node_.layout_a();
+    auto& layout_b = matmul_node_.layout_b();
 
-    size_t batch_dims_a = shape_a.size() - 2;
-    size_t batch_dims_b = shape_b.size() - 2;
+    size_t batch_dims_a = layout_a.dims() - 2;
+    size_t batch_dims_b = layout_b.dims() - 2;
     size_t max_batch_dims = std::max(batch_dims_a, batch_dims_b);
 
     // Generate nested for-loops for batch dimensions
@@ -152,9 +88,9 @@ void MatMulNodeDispatcher_QANT::dispatch_code(
 
         std::string bound;
         if (a_idx != SIZE_MAX) {
-            bound = language_extension_.expression(shape_a[a_idx]);
+            bound = language_extension_.expression(layout_a.shape().at(a_idx));
         } else {
-            bound = language_extension_.expression(shape_b[b_idx]);
+            bound = language_extension_.expression(layout_b.shape().at(b_idx));
         }
 
         stream << "for (size_t " << var << " = 0; " << var << " < (size_t)(" << bound << "); ++" << var << ") {"
@@ -162,10 +98,12 @@ void MatMulNodeDispatcher_QANT::dispatch_code(
         stream.setIndent(stream.indent() + 4);
     }
 
-    std::string a_offset =
-        calculate_tensor_start_offset(matmul_node_.offset_a(), strides_a, batch_dims_a, max_batch_dims, batch_vars);
-    std::string b_offset =
-        calculate_tensor_start_offset(matmul_node_.offset_b(), strides_b, batch_dims_b, max_batch_dims, batch_vars);
+    std::string a_offset = calculate_tensor_start_offset(
+        matmul_node_.offset_a(), layout_a.strides(), batch_dims_a, max_batch_dims, batch_vars
+    );
+    std::string b_offset = calculate_tensor_start_offset(
+        matmul_node_.offset_b(), layout_b.strides(), batch_dims_b, max_batch_dims, batch_vars
+    );
 
     // Compute batch offset for Y: row-major output with shape [batch..., M, N]
     std::string y_offset = "0";
@@ -177,9 +115,9 @@ void MatMulNodeDispatcher_QANT::dispatch_code(
             size_t b_j = (batch_dims_b >= (max_batch_dims - j)) ? j - (max_batch_dims - batch_dims_b) : SIZE_MAX;
             std::string dim;
             if (a_j != SIZE_MAX) {
-                dim = language_extension_.expression(shape_a[a_j]);
+                dim = language_extension_.expression(layout_a.shape().at(a_j));
             } else {
-                dim = language_extension_.expression(shape_b[b_j]);
+                dim = language_extension_.expression(layout_a.shape().at(b_j));
             }
             c_stride = "(" + c_stride + ") * (" + dim + ")";
         }
@@ -201,75 +139,39 @@ void MatMulNodeDispatcher_QANT::dispatch_code(
 
     std::vector<std::string> temp_allocs;
 
-    std::string a_raw_var;
     CodegenOutput output{.main = stream, .globals = globals_stream, .library_snippet_factory = library_snippet_factory};
-    if (input_a_memlet->base_type().primitive_type() != matmul_node_.quantization()) {
-        a_raw_var = "__qant_A_batch";
-        alloc_arr(stream, language_extension_, size_A, a_raw_var, temp_allocs);
-        QuantConversion::emit_conversion(
-            output,
-            language_extension_,
-            a_src_var,
-            input_a_memlet->base_type(),
-            a_raw_var,
-            sdfg::types::Pointer(sdfg::types::Scalar(matmul_node_.quantization())),
-            sdfg::symbolic::integer(0),
-            size_A
-        );
-    } else {
-        a_raw_var = a_src_var;
-    }
+    std::string a_raw_var = "__qant_A_data";
+    auto required_math_type = matmul_node_.quantization();
+    auto layout_a_linear = ensure_input_in_required_qant_format(
+        output,
+        language_extension_,
+        a_src_var,
+        input_a_memlet->base_type(),
+        a_raw_var,
+        layout_a,
+        size_A,
+        required_math_type,
+        false,
+        temp_allocs
+    );
 
-    bool transpose_b = true;
-    std::string b_raw_var;
-    if (transpose_b) {
-        b_raw_var = "__qant_B_transposed";
-        // Transpose B slice from (K, N) to (N, K) for linear_fprop
-        // linear_fprop computes features @ weights^T
-        // features = A (M, K), weights = B^T (N, K) → result = A @ B
-        alloc_arr(stream, language_extension_, size_B, b_raw_var, temp_allocs);
-        stream << "for (size_t __qi = 0; __qi < (size_t)(" << k_expr << "); ++__qi) {" << std::endl;
-        stream.setIndent(stream.indent() + 4);
-        stream << "for (size_t __qj = 0; __qj < (size_t)(" << n_expr << "); ++__qj) {" << std::endl;
-        stream.setIndent(stream.indent() + 4);
-        stream << b_raw_var << "[__qj * (" << k_expr << ") + __qi] = ";
-        bool need_conversion = input_b_memlet->base_type().primitive_type() != matmul_node_.quantization();
-        if (need_conversion) {
-            stream << "static_cast<__bf16>(";
-        }
-        stream << b_src_var << "[__qi * (" << n_expr << ") + __qj]";
-        if (need_conversion) {
-            stream << ")";
-        }
-        stream << ";" << std::endl;
-        stream.setIndent(stream.indent() - 4);
-        stream << "}" << std::endl;
-        stream.setIndent(stream.indent() - 4);
-        stream << "}" << std::endl;
-    } else if (input_b_memlet->base_type().primitive_type() != matmul_node_.quantization()) {
-        b_raw_var = "__qant_B_batch";
-        stream << "__bf16* " << b_raw_var << ";" << std::endl;
-        alloc_arr(stream, language_extension_, size_B, b_raw_var, temp_allocs);
-        QuantConversion::emit_conversion(
-            output,
-            language_extension_,
-            b_src_var,
-            input_b_memlet->base_type(),
-            b_raw_var,
-            sdfg::types::Pointer(sdfg::types::Scalar(matmul_node_.quantization())),
-            sdfg::symbolic::integer(0),
-            size_B
-        );
-    } else {
-        b_raw_var = b_src_var;
-    }
+    std::string b_raw_var = "__qant_B_data";
+    auto layout_b_linear = ensure_input_in_required_qant_format(
+        output,
+        language_extension_,
+        b_src_var,
+        input_b_memlet->base_type(),
+        b_raw_var,
+        layout_b,
+        size_B,
+        required_math_type,
+        true,
+        temp_allocs
+    );
 
-    std::string stride_a_row = language_extension_.expression(strides_a[strides_a.size() - 2]);
-    std::string stride_a_col = language_extension_.expression(strides_a[strides_a.size() - 1]);
-
-    emit_dlpack_tensor_wrapper(stream, "__qant_tensor_A", a_raw_var, m_expr, k_expr, stride_a_row, stride_a_col, "0");
+    emit_dlpack_tensor_wrapper(stream, "__qant_tensor_A", a_raw_var, layout_a_linear, 2);
     // Transposed B is always contiguous (N, K) with strides (K, 1)
-    emit_dlpack_tensor_wrapper(stream, "__qant_tensor_B", b_raw_var, n_expr, k_expr, k_expr, "1", "0");
+    emit_dlpack_tensor_wrapper(stream, "__qant_tensor_B", b_raw_var, layout_b_linear, 2);
 
     stream << "DLManagedTensorVersioned* __qant_result = qant_native_computing_toolkit::linear_fprop(" << std::endl;
     stream << "    __qant_npu_id," << std::endl;
@@ -280,11 +182,12 @@ void MatMulNodeDispatcher_QANT::dispatch_code(
 
     stream << "if (__qant_result == nullptr) {" << std::endl;
     stream.setIndent(stream.indent() + 4);
-    stream << "throw std::runtime_error(\"QANT linear_fprop failed.\");" << std::endl;
+    stream << "throw std::runtime_error(\"QANT linear_fprop n" + std::to_string(node_.element_id()) + " failed.\");"
+           << std::endl;
     stream.setIndent(stream.indent() - 4);
     stream << "}" << std::endl;
 
-    auto need_result_conversion = output_memlet->base_type().primitive_type() != matmul_node_.quantization();
+    auto need_result_conversion = output_memlet->base_type().primitive_type() != required_math_type;
     auto y_src = "__qant_managed_result";
     stream << "__bf16* " << y_src << " = reinterpret_cast<__bf16*>(__qant_result->dl_tensor.data);" << std::endl;
     stream << "for (size_t __q_i = 0; __q_i < " << size_C << "; ++__q_i) {" << std::endl;

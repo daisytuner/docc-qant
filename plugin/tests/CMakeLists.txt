@@ -6,6 +6,8 @@ FetchContent_Declare(
 set(gtest_force_shared_crt ON CACHE BOOL "" FORCE)
 FetchContent_MakeAvailable(googletest)
 
+option(DOCC_TESTS_ENABLE_DUMP "Enable dumping intermediary files of test cases" OFF)
+
 set(TEST_FILES
     qant/tensor/conv_test.cpp
     qant/tensor/matmul_test.cpp
@@ -16,6 +18,12 @@ set(TEST_FILES
 # Now simply link against gtest or gtest_main as needed. Eg
 add_executable(docc-qant-plugin_test ${TEST_FILES})
 target_link_libraries(docc-qant-plugin_test gtest_main docc-qant-plugin)
+
+if(DOCC_TESTS_ENABLE_DUMP)
+    target_compile_definitions(docc-qant-plugin_test PRIVATE
+            DOCC_TESTS_ENABLE_DUMP
+    )
+endif()
 
 add_test(NAME docc-qant-plugin_test COMMAND docc-qant-plugin_test)
 

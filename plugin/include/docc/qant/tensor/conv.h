@@ -1,6 +1,8 @@
 #ifndef DOCC_QANT_TENSOR_CONV_H
 #define DOCC_QANT_TENSOR_CONV_H
 
+#include "docc/qant/dataflow/library_nodes/math/tensor/conv_node.h"
+#include "qant_tensor_dispatcher.h"
 #include "sdfg/codegen/dispatchers/block_dispatcher.h"
 #include "sdfg/data_flow/library_nodes/math/tensor/conv_node.h"
 
@@ -8,13 +10,13 @@ namespace docc {
 namespace qant {
 namespace tensor {
 
-class ConvNodeDispatcher_QANT : public sdfg::codegen::LibraryNodeDispatcher {
+class ConvNodeDispatcher_QANT : public QantTensorLibNodeDispatcher {
 public:
     ConvNodeDispatcher_QANT(
         sdfg::codegen::LanguageExtension& language_extension,
         const sdfg::Function& function,
         const sdfg::data_flow::DataFlowGraph& data_flow_graph,
-        const sdfg::math::tensor::ConvNode& node
+        const sdfg::math::tensor::QantConvNode& node
     );
 
     void dispatch_code(

@@ -78,7 +78,10 @@ void register_plugin(sdfg::plugins::Context& context) {
            const sdfg::data_flow::DataFlowGraph& data_flow_graph,
            const sdfg::data_flow::LibraryNode& node) {
             return std::make_unique<docc::qant::tensor::ConvNodeDispatcher_QANT>(
-                language_extension, function, data_flow_graph, dynamic_cast<const sdfg::math::tensor::ConvNode&>(node)
+                language_extension,
+                function,
+                data_flow_graph,
+                dynamic_cast<const sdfg::math::tensor::QantConvNode&>(node)
             );
         }
     );
@@ -116,10 +119,8 @@ void expand(sdfg::StructuredSDFG& sdfg) {
     sdfg::analysis::AnalysisManager analysis_manager(sdfg);
 
     // Run expansion pass
-    sdfg::passes::Pipeline expansion("QantRemapping");
-    expansion.register_pass<sdfg::passes::QantRemappingPass>();
-
-    expansion.run(builder, analysis_manager);
+    sdfg::passes::QantRemappingPass remapping;
+    remapping.run(builder, analysis_manager);
 
     ReduceQuantizationPass reduceQuantizationPass;
     reduceQuantizationPass.run_pass(builder, analysis_manager);
@@ -153,9 +154,6 @@ std::string compile(
     // All we need is: use g++, add -std=c++23, and link against the -lqant_native_computing_toolkit in terms of changes
     // from the base docc compilation flow. It is scheduled for that code to become more modular, such that it can be
     // called from here, just with additional options to override the options we need
-
-    auto opts = std::getenv("DOCC_DEBUG");
-    bool debug_build = opts != nullptr && std::string(opts).find("-g") != std::string::npos;
 
     fs::path build_path(output_folder);
     if (!fs::exists(build_path)) {
@@ -254,9 +252,6 @@ std::string compile(
 #endif
 
         cmd << " " << lib_file;
-        if (debug_build) {
-            cmd << " -g";
-        }
         cmd << " -o " << object_file;
         cmd << " -lm";
         int ret = std::system(cmd.str().c_str());
@@ -274,9 +269,6 @@ std::string compile(
             cmd << " -I" << package_include_path_str;
         }
         cmd << " " << source_path.string();
-        if (debug_build) {
-            cmd << " -g";
-        }
         cmd << " -o " << (build_path / (sdfg.name() + ".o")).string();
         DEBUG_PRINTLN("Compile: " << cmd.str());
         int ret = std::system(cmd.str().c_str());
