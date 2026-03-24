@@ -78,6 +78,7 @@ void MatMulNodeDispatcher_QANT::dispatch_code(
 
     // Generate nested for-loops for batch dimensions
     std::vector<std::string> batch_vars;
+    std::vector<std::string> batch_dims;
     for (size_t i = 0; i < max_batch_dims; ++i) {
         std::string var = "__qant_b" + std::to_string(i);
         batch_vars.push_back(var);
@@ -87,12 +88,29 @@ void MatMulNodeDispatcher_QANT::dispatch_code(
         size_t b_idx = (batch_dims_b >= (max_batch_dims - i)) ? i - (max_batch_dims - batch_dims_b) : SIZE_MAX;
 
         std::string bound;
-        if (a_idx != SIZE_MAX) {
+        if (a_idx != SIZE_MAX && b_idx != SIZE_MAX) {
+            auto a_dim = layout_a.shape().at(a_idx);
+            auto b_dim = layout_b.shape().at(b_idx);
+            auto a_bcast = symbolic::eq(a_dim, symbolic::one());
+            auto b_bcast = symbolic::eq(b_dim, symbolic::one());
+            if (a_bcast && b_bcast) { // both 1
+                bound = "1";
+            } else if (a_bcast && !b_bcast) {
+                bound = language_extension_.expression(b_dim);
+            } else if (!a_bcast && b_bcast) {
+                bound = language_extension_.expression(a_dim);
+            } else if (symbolic::eq(a_dim, b_dim)) {
+                bound = language_extension_.expression(a_dim);
+            } else {
+                throw InvalidSDFGException("Batch Dims on n" + std::to_string(node_.element_id()) + " not broadcast!");
+            }
+        } else if (a_idx != SIZE_MAX) {
             bound = language_extension_.expression(layout_a.shape().at(a_idx));
         } else {
             bound = language_extension_.expression(layout_b.shape().at(b_idx));
         }
 
+        batch_dims.push_back(bound);
         stream << "for (size_t " << var << " = 0; " << var << " < (size_t)(" << bound << "); ++" << var << ") {"
                << std::endl;
         stream.setIndent(stream.indent() + 4);
@@ -111,14 +129,7 @@ void MatMulNodeDispatcher_QANT::dispatch_code(
         // Output stride for batch dim i = M * N * product of subsequent batch dims
         std::string c_stride = "(" + m_expr + ") * (" + n_expr + ")";
         for (size_t j = i + 1; j < max_batch_dims; ++j) {
-            size_t a_j = (batch_dims_a >= (max_batch_dims - j)) ? j - (max_batch_dims - batch_dims_a) : SIZE_MAX;
-            size_t b_j = (batch_dims_b >= (max_batch_dims - j)) ? j - (max_batch_dims - batch_dims_b) : SIZE_MAX;
-            std::string dim;
-            if (a_j != SIZE_MAX) {
-                dim = language_extension_.expression(layout_a.shape().at(a_j));
-            } else {
-                dim = language_extension_.expression(layout_a.shape().at(b_j));
-            }
+            auto& dim = batch_dims.at(j);
             c_stride = "(" + c_stride + ") * (" + dim + ")";
         }
         y_offset = "(" + y_offset + ") + " + batch_vars[i] + " * (" + c_stride + ")";

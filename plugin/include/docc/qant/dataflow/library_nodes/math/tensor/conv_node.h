@@ -1,5 +1,6 @@
 #pragma once
 
+#include "docc/qant/dataflow/library_nodes/math/tensor/qant_spatial_op_base.h"
 #include "sdfg/data_flow/library_nodes/math/tensor/conv_node.h"
 #include "sdfg/data_flow/library_nodes/math/tensor/tensor_node.h"
 
@@ -13,7 +14,7 @@ namespace tensor {
 
 inline data_flow::LibraryNodeCode LibraryNodeType_QantConv("ml::QantConv");
 
-class QantConvNode : public ConvNode {
+class QantConvNode : public ConvNode, public QantSpatialOpBase<QantConvNode> {
     types::PrimitiveType quantization_;
 
 public:
@@ -39,6 +40,19 @@ public:
     types::PrimitiveType quantization() const;
 
     void set_quantization(const types::PrimitiveType quant);
+
+    /**
+     * @brief Total number of output elements: N * C_out * prod(output_spatial_dim(i))
+     */
+    symbolic::Expression num_output_elements() const;
+
+    /**
+     * @brief Number of multiply-accumulate iterations per output element:
+     *        (C_in / group) * prod(kernel_shape[i])
+     */
+    symbolic::Expression kernel_iteration_count() const;
+
+    symbolic::Expression flop() const override;
 };
 
 class QantConvNodeSerializer : public serializer::LibraryNodeSerializer {

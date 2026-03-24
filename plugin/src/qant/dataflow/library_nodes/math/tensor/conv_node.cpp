@@ -103,6 +103,27 @@ std::string QantConvNode::toStr() const {
     return ss.str();
 }
 
+symbolic::Expression QantConvNode::flop() const {
+    // Total FLOPs = output_elements * K_conv (multiplications)
+    //             + output_elements * (K_conv - 1) (additions)
+    auto output_elems = num_output_elements();
+    auto k_conv = kernel_iteration_count();
+
+    auto mul_ops = symbolic::mul(output_elems, k_conv);
+    auto add_ops = symbolic::mul(output_elems, symbolic::sub(k_conv, symbolic::one()));
+    return symbolic::add(mul_ops, add_ops);
+}
+
+symbolic::Expression QantConvNode::num_output_elements() const {
+    // N * C_out * prod(output_spatial_dim(i))
+    return symbolic::mul(symbolic::mul(shape_[0], output_channels_), output_spatial_volume());
+}
+
+symbolic::Expression QantConvNode::kernel_iteration_count() const {
+    // (C_in / group) * prod(kernel_shape_[i])
+    return symbolic::mul(symbolic::div(shape_[1], group_), kernel_volume());
+}
+
 nlohmann::json QantConvNodeSerializer::serialize(const data_flow::LibraryNode& library_node) {
     const QantConvNode& conv_node = static_cast<const QantConvNode&>(library_node);
     nlohmann::json j;

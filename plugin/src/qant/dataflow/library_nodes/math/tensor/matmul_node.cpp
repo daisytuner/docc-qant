@@ -79,6 +79,58 @@ std::string QantMatMulNode::toStr() const {
     ss << ")";
     return ss.str();
 }
+
+/**
+ * Warning: this is wrong, as it assumes linear iteration. If the strides were used to skip over some element, this
+ * reduction will not be reflected in the current flop estimation. For this, fix the m, n, k accessors that only rely on
+ * shape
+ */
+symbolic::Expression QantMatMulNode::flop() const {
+    auto res_elems = symbolic::mul(this->m(), this->n());
+    auto k = this->k();
+
+    auto mm_mul_ops = symbolic::mul(res_elems, k);
+    auto mm_sum_ops = symbolic::mul(res_elems, symbolic::sub(k, symbolic::one()));
+
+    auto mul_ops = mm_mul_ops;
+    auto add_ops = mm_sum_ops;
+    auto per_mat = symbolic::add(mul_ops, add_ops);
+    int a_dims = layout_a_.dims();
+    int b_dims = layout_b_.dims();
+    if (a_dims > 2 || b_dims > 2) {
+        std::vector<symbolic::Expression> factors{per_mat};
+        auto max_dims = std::max(a_dims, b_dims);
+        for (int i = 2; i < max_dims; ++i) {
+            symbolic::Expression dim_a, dim_b;
+            if (i < a_dims) {
+                dim_a = layout_a_.get_dim_innermost(i);
+            }
+            if (i < b_dims) {
+                dim_b = layout_b_.get_dim_innermost(i);
+            }
+            if (dim_a.is_null() & !dim_b.is_null()) {
+                factors.push_back(dim_b);
+            } else if (!dim_a.is_null() & dim_b.is_null()) {
+                factors.push_back(dim_a);
+            } else if (!dim_a.is_null() & !dim_b.is_null()) {
+                if (!symbolic::eq(dim_a, dim_b)) {
+                    throw InvalidSDFGException(
+                        "Batch dimension " + std::to_string(i) + " mismatch between A and B. A has " +
+                        dim_a->__str__() + ", B has " + dim_b->__str__()
+                    );
+                } else {
+                    factors.push_back(dim_a);
+                }
+            } else {
+                return SymEngine::null;
+            }
+        }
+        return SymEngine::mul(factors);
+    } else {
+        return per_mat;
+    }
+}
+
 types::PrimitiveType QantMatMulNode::quantization() const { return quantization_; }
 
 void QantMatMulNode::set_quantization(const types::PrimitiveType quant) { quantization_ = quant; }

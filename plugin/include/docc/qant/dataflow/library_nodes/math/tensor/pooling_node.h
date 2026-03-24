@@ -1,5 +1,6 @@
 #pragma once
 
+#include "docc/qant/dataflow/library_nodes/math/tensor/qant_spatial_op_base.h"
 #include "sdfg/data_flow/library_nodes/math/tensor/pooling_node.h"
 #include "sdfg/data_flow/library_nodes/math/tensor/tensor_node.h"
 
@@ -13,7 +14,7 @@ namespace tensor {
 
 inline data_flow::LibraryNodeCode LibraryNodeType_QantPooling("ml::QantPooling");
 
-class QantPoolingNode : public PoolingNode {
+class QantPoolingNode : public PoolingNode, public QantSpatialOpBase<QantPoolingNode> {
     types::PrimitiveType quantization_;
 
 public:
@@ -38,6 +39,8 @@ public:
     types::PrimitiveType quantization() const;
 
     void set_quantization(const types::PrimitiveType quant);
+
+    symbolic::Expression flop() const override;
 };
 
 class QantPoolingNodeSerializer : public serializer::LibraryNodeSerializer {
