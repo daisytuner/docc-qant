@@ -30,7 +30,7 @@ classifiers = [
 ]
 
 dependencies = [
-  "docc-compiler==0.0.3",
+  "docc-compiler>=0.0.5"
 ]
 
 [project.urls]
