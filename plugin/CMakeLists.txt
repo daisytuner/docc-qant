@@ -5,6 +5,7 @@ set(SOURCE_FILES_PRIVATE
     src/qant/blas/gemm.cpp
     src/qant/passes/reduce_quantization_pass.cpp
     src/qant/passes/remapping_pass.cpp
+    src/qant/qant_offloaded_visitor.cpp
     src/qant/tensor/conv.cpp
     src/qant/tensor/matmul.cpp
     src/qant/tensor/qant_tensor_dispatcher.cpp

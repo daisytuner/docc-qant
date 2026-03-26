@@ -112,6 +112,8 @@ public:
     const TensorLayout& layout_a() const;
 
     const TensorLayout& layout_b() const;
+
+    symbolic::Expression flop() const override;
 };
 
 /**

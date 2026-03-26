@@ -5,6 +5,7 @@
 #include "docc/qant/dataflow/library_nodes/math/tensor/pooling_node.h"
 #include "docc/qant/passes/remapping_pass.h"
 #include "docc/qant/qant.h"
+#include "docc/qant/qant_offloaded_visitor.h"
 #include "docc/qant/tensor/conv.h"
 #include "docc/qant/tensor/matmul.h"
 #include "docc/qant/tensor/pooling.h"
@@ -13,6 +14,8 @@
 #include "sdfg/structured_sdfg.h"
 
 #include <dlfcn.h>
+#include <iomanip>
+#include <optional>
 #include <sdfg/analysis/analysis.h>
 #include <sdfg/builder/structured_sdfg_builder.h>
 #include <sdfg/data_flow/library_nodes/math/blas/gemm_node.h>
@@ -20,6 +23,8 @@
 #include <sdfg/data_flow/library_nodes/math/tensor/matmul_node.h>
 #include <sdfg/data_flow/library_nodes/math/tensor/pooling_node.h>
 #include <sdfg/passes/targets/target_mapping_pass.h>
+
+#include "sdfg/visualizer/dot_visualizer.h"
 
 sdfg::plugins::Plugin register_docc_plugin() {
     return sdfg::plugins::Plugin{
@@ -144,6 +149,141 @@ struct SnippetMetadata {
     std::string extension;
 };
 
+/**
+ * @brief Try to compute a concrete percentage from two symbolic expressions.
+ *
+ * Returns a numeric percentage (part / whole * 100) only when both expressions
+ * evaluate to plain integers.  If either is null, zero-denominator, or contains
+ * free symbols the result is std::nullopt — a symbolic ratio would not be
+ * human-readable anyway.
+ */
+static std::optional<double>
+try_compute_percentage(const sdfg::symbolic::Expression& part, const sdfg::symbolic::Expression& whole) {
+    if (part.is_null() || whole.is_null()) return std::nullopt;
+    if (!SymEngine::is_a<SymEngine::Integer>(*part)) return std::nullopt;
+    if (!SymEngine::is_a<SymEngine::Integer>(*whole)) return std::nullopt;
+
+    auto whole_int = SymEngine::down_cast<const SymEngine::Integer&>(*whole).as_int();
+    if (whole_int == 0) return std::nullopt;
+
+    auto part_int = SymEngine::down_cast<const SymEngine::Integer&>(*part).as_int();
+    return static_cast<double>(part_int) / static_cast<double>(whole_int) * 100.0;
+}
+
+void analyze_offloading(sdfg::StructuredSDFG& sdfg) {
+    sdfg::analysis::AnalysisManager analysis_manager(sdfg);
+    auto& flop_ana = analysis_manager.get<sdfg::analysis::FlopAnalysis>();
+
+    // ── Total FLOPs (from whole-program analysis) ───────────────────────
+    auto total = flop_ana.get(&sdfg.root());
+    std::cout << "=== Offloading Analysis ===" << std::endl;
+    std::cout << "  Total FLOPs: ";
+    if (!total.is_null()) {
+        std::cout << total->__str__();
+    } else {
+        std::cout << "N/A (could not be determined)";
+    }
+    std::cout << std::endl;
+
+    // ── Collect Qant-offloaded nodes ────────────────────────────────────
+    QantOffloadedVisitor visitor;
+    visitor.dispatch(sdfg.root());
+
+    const auto& offloaded = visitor.offloaded();
+    if (offloaded.empty()) {
+        std::cout << "  No Qant-offloaded library nodes found." << std::endl;
+        std::cout << "===========================" << std::endl;
+        return;
+    }
+
+    std::cout << "  Offloaded library nodes: " << offloaded.size() << std::endl;
+
+    // ── Accumulate offloaded FLOPs, grouped by operator code ────────────
+    // Preserves insertion order via a vector of keys.
+    struct GroupAccum {
+        sdfg::symbolic::Expression flops = sdfg::symbolic::zero();
+        size_t count = 0;
+        bool available = true;
+    };
+    std::vector<std::string> group_order;
+    std::unordered_map<std::string, GroupAccum> groups;
+
+    sdfg::symbolic::Expression offloaded_flops = sdfg::symbolic::zero();
+    bool offloaded_available = true;
+
+    for (const auto& info : offloaded) {
+        std::string node_name = info.node->toStr();
+        std::string op_code = info.node->code().value();
+
+        // Flag loop nesting — we don't expect this yet and would need to
+        // account for trip counts if it ever happens.
+        if (info.enclosing_loop != nullptr) {
+            std::cout << "    [WARN] " << node_name << "  — inside a loop; offloaded flop total may be inaccurate"
+                      << std::endl;
+        }
+
+        // Ensure the group exists and track insertion order.
+        if (groups.find(op_code) == groups.end()) {
+            group_order.push_back(op_code);
+        }
+        auto& group = groups[op_code];
+        group.count++;
+
+        auto node_flops = info.node->flop();
+        if (node_flops.is_null()) {
+            std::cout << "    [!] " << node_name << "  — flop count unavailable" << std::endl;
+            offloaded_available = false;
+            group.available = false;
+            continue;
+        }
+
+        offloaded_flops = sdfg::symbolic::add(offloaded_flops, node_flops);
+        group.flops = sdfg::symbolic::add(group.flops, node_flops);
+    }
+
+    // ── Per-operator subtotals ──────────────────────────────────────────
+    std::cout << "  Per-operator breakdown:" << std::endl;
+    for (const auto& op_code : group_order) {
+        const auto& group = groups.at(op_code);
+        std::cout << "    " << op_code << " (" << group.count << " node" << (group.count != 1 ? "s" : "") << "): ";
+        if (group.available) {
+            std::cout << group.flops->__str__();
+        } else {
+            std::cout << "incomplete (" << group.flops->__str__() << " + unknown)";
+        }
+        if (group.available) {
+            auto pct = try_compute_percentage(group.flops, total);
+            if (pct.has_value()) {
+                std::cout << std::fixed << std::setprecision(4) << "  (" << pct.value() << "% of total)";
+            }
+        }
+        std::cout << std::endl;
+    }
+
+    // ── Summary ─────────────────────────────────────────────────────────
+    std::cout << "  Offloaded FLOPs: ";
+    if (offloaded_available) {
+        std::cout << offloaded_flops->__str__();
+    } else {
+        std::cout << "incomplete (" << offloaded_flops->__str__() << " + unknown contributions)";
+    }
+    std::cout << std::endl;
+
+    std::cout << "  Offloaded ratio: ";
+    if (offloaded_available) {
+        auto pct = try_compute_percentage(offloaded_flops, total);
+        if (pct.has_value()) {
+            std::cout << std::fixed << std::setprecision(4) << pct.value() << " %" << std::endl;
+        } else {
+            std::cout << "N/A (symbolic — cannot compute numeric ratio)" << std::endl;
+        }
+    } else {
+        std::cout << "N/A (missing flop information)" << std::endl;
+    }
+
+    std::cout << "===========================" << std::endl;
+}
+
 std::string compile(
     sdfg::StructuredSDFG& sdfg,
     const std::string& output_folder,
@@ -151,6 +291,7 @@ std::string compile(
     const std::string& instrumentation_mode,
     bool capture_args
 ) {
+    analyze_offloading(sdfg);
     // All we need is: use g++, add -std=c++23, and link against the -lqant_native_computing_toolkit in terms of changes
     // from the base docc compilation flow. It is scheduled for that code to become more modular, such that it can be
     // called from here, just with additional options to override the options we need

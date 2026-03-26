@@ -75,6 +75,28 @@ std::string QantPoolingNode::toStr() const {
     return ss.str();
 }
 
+symbolic::Expression QantPoolingNode::flop() const {
+    // Total output elements: N * C * prod(output_spatial_dim(i))
+    auto output_elems = symbolic::mul(symbolic::mul(shape_[0], shape_[1]), output_spatial_volume());
+
+    // Each output element reduces a full kernel window.
+    auto kv = kernel_volume();
+
+    switch (mode_) {
+        case PoolingMode::Max:
+            // max pooling: (kv - 1) comparisons per output element
+            return symbolic::mul(output_elems, symbolic::sub(kv, symbolic::one()));
+        case PoolingMode::Sum:
+            // sum pooling: (kv - 1) additions per output element
+            return symbolic::mul(output_elems, symbolic::sub(kv, symbolic::one()));
+        case PoolingMode::Avg:
+            // avg pooling: (kv - 1) additions + 1 division per output element
+            return symbolic::mul(output_elems, kv);
+        default:
+            return symbolic::symbol("QantUnknownFlops_Pool_n" + std::to_string(element_id_));
+    }
+}
+
 nlohmann::json QantPoolingNodeSerializer::serialize(const data_flow::LibraryNode& library_node) {
     const QantPoolingNode& node = static_cast<const QantPoolingNode&>(library_node);
     nlohmann::json j;
