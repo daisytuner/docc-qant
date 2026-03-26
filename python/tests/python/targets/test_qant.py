@@ -12,7 +12,6 @@ register_docc_plugin()
 def matmul_bf16(a, b):
     return a @ b
 
-
 def test_matmul_bf16():
 
     M, K, N = 32, 48, 64
