@@ -3,8 +3,8 @@
 #include "docc/qant/dataflow/library_nodes/math/tensor/matmul_node.h"
 #include "docc/qant/dataflow/library_nodes/math/tensor/pooling_node.h"
 #include "docc/qant/passes/remapping_pass.h"
-#include "docc/qant/transformations/einsum2qant_matmul.h"
 #include "docc/qant/qant.h"
+#include "docc/qant/transformations/einsum2qant_matmul.h"
 
 #include "sdfg/analysis/analysis.h"
 #include "sdfg/data_flow/library_node.h"
