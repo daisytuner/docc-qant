@@ -1,6 +1,7 @@
 #include "docc/qant/plugin.h"
 #include "docc/qant/blas/gemm.h"
 #include "docc/qant/dataflow/library_nodes/math/tensor/conv_node.h"
+#include "docc/qant/dataflow/library_nodes/math/tensor/elementwise_ops/relu_node.h"
 #include "docc/qant/dataflow/library_nodes/math/tensor/matmul_node.h"
 #include "docc/qant/dataflow/library_nodes/math/tensor/pooling_node.h"
 #include "docc/qant/passes/remapping_pass.h"
@@ -9,6 +10,7 @@
 #include "docc/qant/tensor/conv.h"
 #include "docc/qant/tensor/matmul.h"
 #include "docc/qant/tensor/pooling.h"
+#include "docc/qant/tensor/relu.h"
 #include "sdfg/codegen/code_generators/cpp_code_generator.h"
 #include "sdfg/passes/einsum.h"
 #include "sdfg/passes/pipeline.h"
@@ -21,6 +23,7 @@
 #include <sdfg/builder/structured_sdfg_builder.h>
 #include <sdfg/data_flow/library_nodes/math/blas/gemm_node.h>
 #include <sdfg/data_flow/library_nodes/math/tensor/conv_node.h>
+#include <sdfg/data_flow/library_nodes/math/tensor/elementwise_ops/relu_node.h>
 #include <sdfg/data_flow/library_nodes/math/tensor/matmul_node.h>
 #include <sdfg/data_flow/library_nodes/math/tensor/pooling_node.h>
 #include <sdfg/passes/targets/target_mapping_pass.h>
@@ -115,6 +118,28 @@ void register_plugin(sdfg::plugins::Context& context) {
     context.library_node_serializer_registry
         .register_library_node_serializer(sdfg::math::tensor::LibraryNodeType_QantPooling.value(), []() {
             return std::make_unique<sdfg::math::tensor::QantPoolingNodeSerializer>();
+        });
+
+    // Register Q.ANT ReLU dispatcher
+    context.library_node_dispatcher_registry.register_library_node_dispatcher(
+        sdfg::math::tensor::LibraryNodeType_QantReLU.value() + "::" + docc::qant::ImplementationType_QANT.value(),
+        [](sdfg::codegen::LanguageExtension& language_extension,
+           const sdfg::Function& function,
+           const sdfg::data_flow::DataFlowGraph& data_flow_graph,
+           const sdfg::data_flow::LibraryNode& node) {
+            return std::make_unique<docc::qant::tensor::ReLUNodeDispatcher_QANT>(
+                language_extension,
+                function,
+                data_flow_graph,
+                dynamic_cast<const sdfg::math::tensor::QantReLUNode&>(node)
+            );
+        }
+    );
+
+    // Register QantReLU serializer
+    context.library_node_serializer_registry
+        .register_library_node_serializer(sdfg::math::tensor::LibraryNodeType_QantReLU.value(), []() {
+            return std::make_unique<sdfg::math::tensor::QantReLUNodeSerializer>();
         });
 
     std::cout << "Q.ANT plugin registered with docc compiler!" << std::endl;
