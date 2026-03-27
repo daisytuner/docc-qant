@@ -1,18 +1,18 @@
 #include "sdfg/einsum/einsum.h"
 
+#include <dlfcn.h>
 #include <gtest/gtest.h>
 #include <nlohmann/json_fwd.hpp>
+#include <stdfloat>
 #include <string>
 #include <vector>
-#include <dlfcn.h>
-#include <stdfloat>
 
-#include "../../../../3rdParty/docc/sdfg/tests/sdfg_debug_dump.h"
 #include <sdfg/passes/dataflow/tensor_to_pointer_conversion.h>
-#include "docc/qant/dataflow/library_nodes/math/tensor/matmul_node.h"
 #include <sdfg/passes/pipeline.h>
-#include "docc/qant/qant.h"
+#include "../../../../3rdParty/docc/sdfg/tests/sdfg_debug_dump.h"
+#include "docc/qant/dataflow/library_nodes/math/tensor/matmul_node.h"
 #include "docc/qant/passes/remapping_pass.h"
+#include "docc/qant/qant.h"
 #include "sdfg/analysis/analysis.h"
 #include "sdfg/builder/structured_sdfg_builder.h"
 #include "sdfg/data_flow/access_node.h"
@@ -166,7 +166,7 @@ TEST(EinsumTest, Matmul_2D_BFloat16) {
     EXPECT_EQ(qant_matmul->implementation_type(), docc::qant::ImplementationType_QANT.value());
 
     // Verify the node has correct inputs and outputs
-    EXPECT_EQ(block.dataflow().in_degree(*qant_matmul), 2);  // A and B inputs
+    EXPECT_EQ(block.dataflow().in_degree(*qant_matmul), 2); // A and B inputs
     EXPECT_EQ(block.dataflow().out_degree(*qant_matmul), 1); // Y output
 
     sdfg::passes::TensorToPointerConversionPass tensor_to_pointer_conversion_pass;
@@ -212,8 +212,7 @@ TEST(EinsumTest, Matmul_2D_BFloat16) {
 
     // Verify results match reference computation
     for (int i = 0; i < M * N; ++i) {
-        EXPECT_NEAR(static_cast<float>(C_result[i]), C_ref[i], 3e-2f)
-            << "Mismatch at index " << i;
+        EXPECT_NEAR(static_cast<float>(C_result[i]), C_ref[i], 3e-2f) << "Mismatch at index " << i;
     }
 
     dlclose(h);
@@ -258,7 +257,9 @@ TEST(EinsumTest, Transpose_BFloat16) {
         const std::vector<einsum::EinsumDimension>&,
         const data_flow::Subset&,
         const std::vector<data_flow::Subset>&>(
-        block, DebugInfo(), {"_in1"},
+        block,
+        DebugInfo(),
+        {"_in1"},
         {{i, zero, symbolic::integer(8)}, {j, zero, symbolic::integer(4)}},
         {i, j},
         {{j, i}}
@@ -303,12 +304,12 @@ TEST(EinsumTest, Transpose_BFloat16) {
 
     const int M_orig = 4, N_orig = 8;
     std::vector<__bf16> A_data(M_orig * N_orig);
-    std::vector<__bf16> C_result(N_orig * M_orig, (__bf16)0.0f);
+    std::vector<__bf16> C_result(N_orig * M_orig, (__bf16) 0.0f);
     std::vector<float> C_ref(N_orig * M_orig, 0.0f);
 
     // Initialize input data: A[4, 8]
     for (int i = 0; i < M_orig * N_orig; ++i) {
-        A_data[i] = (__bf16)(static_cast<float>(i % 7) * 0.5f);
+        A_data[i] = (__bf16) (static_cast<float>(i % 7) * 0.5f);
     }
 
     // Compute reference transpose: C[8, 4] = A[4, 8]^T
@@ -324,8 +325,7 @@ TEST(EinsumTest, Transpose_BFloat16) {
 
     // Verify results match reference computation
     for (int i = 0; i < N_orig * M_orig; ++i) {
-        EXPECT_NEAR(static_cast<float>(C_result[i]), C_ref[i], 1e-6f)
-            << "Mismatch at index " << i;
+        EXPECT_NEAR(static_cast<float>(C_result[i]), C_ref[i], 1e-6f) << "Mismatch at index " << i;
     }
 
     dlclose(h);
@@ -360,14 +360,14 @@ TEST(EinsumTest, GEMM_3D_Batched_BFloat16) {
 
     // Symbols for einsum
     auto zero = symbolic::zero();
-    auto b = symbolic::symbol("b");   // batch dimension
-    auto i = symbolic::symbol("i");   // M dimension
-    auto j = symbolic::symbol("j");   // N dimension
-    auto k = symbolic::symbol("k");   // K dimension (reduction)
-    auto B = symbolic::symbol("B");   // batch size = 2
-    auto M = symbolic::symbol("M");   // M = 4
-    auto N = symbolic::symbol("N");   // N = 6
-    auto K = symbolic::symbol("K");   // K = 8
+    auto b = symbolic::symbol("b"); // batch dimension
+    auto i = symbolic::symbol("i"); // M dimension
+    auto j = symbolic::symbol("j"); // N dimension
+    auto k = symbolic::symbol("k"); // K dimension (reduction)
+    auto B = symbolic::symbol("B"); // batch size = 2
+    auto M = symbolic::symbol("M"); // M = 4
+    auto N = symbolic::symbol("N"); // N = 6
+    auto K = symbolic::symbol("K"); // K = 8
 
     auto& libnode = builder.add_library_node<
         einsum::EinsumNode,
@@ -378,7 +378,10 @@ TEST(EinsumTest, GEMM_3D_Batched_BFloat16) {
         block,
         DebugInfo(),
         {"_in1", "_in2"},
-        {{b, zero, symbolic::integer(2)}, {i, zero, symbolic::integer(4)}, {j, zero, symbolic::integer(6)}, {k, zero, symbolic::integer(8)}},
+        {{b, zero, symbolic::integer(2)},
+         {i, zero, symbolic::integer(4)},
+         {j, zero, symbolic::integer(6)},
+         {k, zero, symbolic::integer(8)}},
         {b, i, j},
         {{b, i, k}, {b, k, j}}
     );
@@ -395,7 +398,7 @@ TEST(EinsumTest, GEMM_3D_Batched_BFloat16) {
     EXPECT_EQ(library_nodes.size(), 1);
     auto* einsum_node = dynamic_cast<sdfg::einsum::EinsumNode*>(*library_nodes.begin());
     EXPECT_TRUE(einsum_node);
-    EXPECT_EQ(einsum_node->dims().size(), 4);  // 4 dimensions: b, i, j, k
+    EXPECT_EQ(einsum_node->dims().size(), 4); // 4 dimensions: b, i, j, k
 
     // Check output indices (batch, row, col)
     EXPECT_EQ(einsum_node->out_indices().size(), 3);
@@ -407,7 +410,7 @@ TEST(EinsumTest, GEMM_3D_Batched_BFloat16) {
     // Check inputs
     EXPECT_EQ(einsum_node->inputs(), std::vector<std::string>({"_in1", "_in2", "__einsum_out"}));
     EXPECT_EQ(einsum_node->in_indices().size(), 3);
-    
+
     // Input A: [b, i, k]
     EXPECT_EQ(einsum_node->in_indices(0).size(), 3);
     ASSERT_GE(einsum_node->in_indices(0).size(), 3);
@@ -451,31 +454,31 @@ TEST(EinsumTest, GEMM_3D_Batched_BFloat16) {
     EXPECT_EQ(qant_matmul->implementation_type(), docc::qant::ImplementationType_QANT.value());
 
     // Verify the node has correct inputs and outputs
-    EXPECT_EQ(block.dataflow().in_degree(*qant_matmul), 2);  // A and B inputs
+    EXPECT_EQ(block.dataflow().in_degree(*qant_matmul), 2); // A and B inputs
     EXPECT_EQ(block.dataflow().out_degree(*qant_matmul), 1); // Y output
 
     // Verify tensor layouts include batch dimension
     const auto& layout_a = qant_matmul->layout_a();
     const auto& layout_b = qant_matmul->layout_b();
-    
+
     // Layout A should be [2, 4, 8] (Batch=2, M=4, K=8)
     EXPECT_EQ(layout_a.dims(), 3);
     ASSERT_GE(layout_a.shape().size(), 3);
-    EXPECT_TRUE(symbolic::eq(layout_a.shape()[0], symbolic::integer(2)));  // Batch
-    EXPECT_TRUE(symbolic::eq(layout_a.shape()[1], symbolic::integer(4)));  // M
-    EXPECT_TRUE(symbolic::eq(layout_a.shape()[2], symbolic::integer(8)));  // K
-    
+    EXPECT_TRUE(symbolic::eq(layout_a.shape()[0], symbolic::integer(2))); // Batch
+    EXPECT_TRUE(symbolic::eq(layout_a.shape()[1], symbolic::integer(4))); // M
+    EXPECT_TRUE(symbolic::eq(layout_a.shape()[2], symbolic::integer(8))); // K
+
     // Layout B should be [2, 8, 6] (Batch=2, K=8, N=6)
     EXPECT_EQ(layout_b.dims(), 3);
     ASSERT_GE(layout_b.shape().size(), 3);
-    EXPECT_TRUE(symbolic::eq(layout_b.shape()[0], symbolic::integer(2)));  // Batch
-    EXPECT_TRUE(symbolic::eq(layout_b.shape()[1], symbolic::integer(8)));  // K
-    EXPECT_TRUE(symbolic::eq(layout_b.shape()[2], symbolic::integer(6)));  // N
+    EXPECT_TRUE(symbolic::eq(layout_b.shape()[0], symbolic::integer(2))); // Batch
+    EXPECT_TRUE(symbolic::eq(layout_b.shape()[1], symbolic::integer(8))); // K
+    EXPECT_TRUE(symbolic::eq(layout_b.shape()[2], symbolic::integer(6))); // N
 
     // Verify the base matmul dimensions (last 2 dims of each tensor)
-    EXPECT_TRUE(symbolic::eq(qant_matmul->m(), symbolic::integer(4)));  // M from A
-    EXPECT_TRUE(symbolic::eq(qant_matmul->n(), symbolic::integer(6)));  // N from B
-    EXPECT_TRUE(symbolic::eq(qant_matmul->k(), symbolic::integer(8)));  // K (reduction dim)
+    EXPECT_TRUE(symbolic::eq(qant_matmul->m(), symbolic::integer(4))); // M from A
+    EXPECT_TRUE(symbolic::eq(qant_matmul->n(), symbolic::integer(6))); // N from B
+    EXPECT_TRUE(symbolic::eq(qant_matmul->k(), symbolic::integer(8))); // K (reduction dim)
 
     sdfg::passes::TensorToPointerConversionPass tensor_to_pointer_conversion_pass;
     tensor_to_pointer_conversion_pass.run(builder, analysis_manager);
@@ -499,7 +502,8 @@ TEST(EinsumTest, GEMM_3D_Batched_BFloat16) {
     ASSERT_NE(fn, nullptr) << dlerror();
 
     const int Batch_val = 2, M_val = 4, K_val = 8, N_val = 6;
-    const int total_a = Batch_val * M_val * K_val, total_b = Batch_val * K_val * N_val, total_c = Batch_val * M_val * N_val;
+    const int total_a = Batch_val * M_val * K_val, total_b = Batch_val * K_val * N_val,
+              total_c = Batch_val * M_val * N_val;
     std::vector<__bf16> A_data(total_a), B_data(total_b), C_result(total_c, (__bf16) 0.0f);
     std::vector<float> C_ref(total_c, 0.0f);
 
@@ -526,11 +530,8 @@ TEST(EinsumTest, GEMM_3D_Batched_BFloat16) {
 
     // Verify results match reference computation
     for (int i = 0; i < total_c; ++i) {
-        EXPECT_NEAR(static_cast<float>(C_result[i]), C_ref[i], 3e-2f)
-            << "Mismatch at index " << i;
+        EXPECT_NEAR(static_cast<float>(C_result[i]), C_ref[i], 3e-2f) << "Mismatch at index " << i;
     }
 
     dlclose(h);
 }
-
-

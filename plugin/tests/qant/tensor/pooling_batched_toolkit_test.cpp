@@ -24,13 +24,7 @@ namespace {
 
 /// Helper: build a row-major 4D DLPack tensor wrapper (does not own data).
 DLManagedTensorVersioned make_tensor_4d(
-    void* data,
-    int64_t dim0,
-    int64_t dim1,
-    int64_t dim2,
-    int64_t dim3,
-    int64_t* shape_buf,
-    int64_t* stride_buf
+    void* data, int64_t dim0, int64_t dim1, int64_t dim2, int64_t dim3, int64_t* shape_buf, int64_t* stride_buf
 ) {
     shape_buf[0] = dim0;
     shape_buf[1] = dim1;
