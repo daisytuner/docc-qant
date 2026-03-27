@@ -1,5 +1,6 @@
 #include "docc/qant/passes/remapping_pass.h"
 #include "docc/qant/dataflow/library_nodes/math/tensor/conv_node.h"
+#include "docc/qant/dataflow/library_nodes/math/tensor/elementwise_ops/relu_node.h"
 #include "docc/qant/dataflow/library_nodes/math/tensor/matmul_node.h"
 #include "docc/qant/dataflow/library_nodes/math/tensor/pooling_node.h"
 #include "docc/qant/passes/remapping_pass.h"
@@ -10,6 +11,7 @@
 #include "sdfg/data_flow/library_node.h"
 #include "sdfg/data_flow/library_nodes/math/math.h"
 #include "sdfg/data_flow/library_nodes/math/tensor/conv_node.h"
+#include "sdfg/data_flow/library_nodes/math/tensor/elementwise_ops/relu_node.h"
 #include "sdfg/data_flow/library_nodes/math/tensor/matmul_node.h"
 #include "sdfg/data_flow/library_nodes/math/tensor/pooling_node.h"
 #include "sdfg/types/pointer.h"
@@ -108,6 +110,15 @@ bool QantRemapping::accept(structured_control_flow::Block& node) {
             new_node->implementation_type() = docc::qant::ImplementationType_QANT;
             if (report_) {
                 report_->transform_applied("QantPooling");
+            }
+        } else if (library_node->code() == math::tensor::LibraryNodeType_ReLU.value()) {
+            auto* relu_node = dynamic_cast<math::tensor::ReLUNode*>(library_node);
+            auto quantization = relu_node->primitive_type(dataflow);
+            new_node = &builder_.add_library_node<
+                math::tensor::QantReLUNode>(node, relu_node->debug_info(), quantization, relu_node->shape());
+            new_node->implementation_type() = docc::qant::ImplementationType_QANT;
+            if (report_) {
+                report_->transform_applied("QantReLU");
             }
         } else if (library_node->code() == sdfg::math::blas::LibraryNodeType_GEMM.value()) {
             auto* gemm_node = dynamic_cast<sdfg::math::blas::GEMMNode*>(library_node);

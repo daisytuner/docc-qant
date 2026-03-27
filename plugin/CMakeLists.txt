@@ -14,6 +14,8 @@ set(SOURCE_FILES_PRIVATE
     src/qant/dataflow/library_nodes/math/tensor/matmul_node.cpp
     src/qant/tensor/pooling.cpp
     src/qant/dataflow/library_nodes/math/tensor/pooling_node.cpp
+    src/qant/tensor/relu.cpp
+    src/qant/dataflow/library_nodes/math/tensor/elementwise_ops/relu_node.cpp
 )
 
 add_library(docc-qant-plugin STATIC
