@@ -4,8 +4,103 @@ on:
   push:
     branches:
       - main
+  pull_request:
+    types: [opened, reopened, synchronize, ready_for_review]
 
 jobs:
+  cpp-tests-debian12:
+    runs-on: ubuntu-latest
+    container:
+      image: debian:12
+
+    steps:
+      - name: Install git and dependencies for checkout
+        run: |
+          apt-get update
+          apt-get install -y git git-lfs
+
+      - uses: actions/checkout@v4
+        with:
+          submodules: recursive
+          lfs: true
+
+      - name: Mark GitHub Actions workdir as safe
+        run: git config --global --add safe.directory "$GITHUB_WORKSPACE"
+
+      - name: Fetch LFS files
+        run: git lfs pull
+
+      - name: Install GCC-13 and build dependencies
+        run: |
+          apt-get update
+          apt-get install -y \
+            wget \
+            software-properties-common \
+            gnupg2 \
+            lsb-release
+
+          # Add testing repository for GCC-13
+          echo "deb http://deb.debian.org/debian testing main" >> /etc/apt/sources.list
+          apt-get update
+          apt-get install -y -t testing gcc-13 g++-13 libstdc++-13-dev
+
+          # Set GCC-13 as default
+          update-alternatives --install /usr/bin/gcc gcc /usr/bin/gcc-13 100
+          update-alternatives --install /usr/bin/g++ g++ /usr/bin/g++-13 100
+          update-alternatives --install /usr/bin/cc cc /usr/bin/gcc-13 100
+          update-alternatives --install /usr/bin/c++ c++ /usr/bin/g++-13 100
+
+          # Add LLVM repository for clang-19
+          wget -O - https://apt.llvm.org/llvm-snapshot.gpg.key | apt-key add -
+          echo "deb http://apt.llvm.org/bookworm/ llvm-toolchain-bookworm-19 main" >> /etc/apt/sources.list.d/llvm.list
+          apt-get update
+
+      - name: Install build dependencies
+        run: |
+          apt-get install -y \
+            cmake \
+            ninja-build \
+            clang-19 \
+            libgmp-dev \
+            libcurl4-gnutls-dev \
+            libisl-dev \
+            nlohmann-json3-dev \
+            libopenblas-dev
+
+      - name: Install QANT toolkit
+        run: |
+          apt-get install -y ./qant-native-computing-toolkit.2.1.0-1-amd64.deb
+
+      - name: Install DLPack headers
+        run: |
+          cd /tmp
+          wget -q https://github.com/dmlc/dlpack/archive/refs/tags/v1.2.tar.gz
+          tar -xzf v1.2.tar.gz
+          cd dlpack-1.2
+          cp -r include/dlpack /usr/local/include/
+
+      - name: Build and test
+        run: |
+          mkdir build
+          cd build
+          cmake \
+            -G Ninja \
+            -DCMAKE_C_COMPILER=clang-19 \
+            -DCMAKE_CXX_COMPILER=clang++-19 \
+            -DCMAKE_INSTALL_PREFIX=/usr/local \
+            -DCMAKE_BUILD_TYPE=Debug \
+            -DDOCC_QANT_ENABLE_COVERAGE=ON \
+            -DBUILD_TESTS:BOOL=OFF \
+            -DBUILD_BENCHMARKS:BOOL=OFF \
+            -DBUILD_BENCHMARKS_GOOGLE:BOOL=OFF  \
+            ..
+          ninja -j$(nproc)
+          ninja install
+
+          # Ensure custom libstdc++ with stdfloat support is in library path
+          export LD_LIBRARY_PATH=/usr/lib/gcc/x86_64-linux-gnu/13:$LD_LIBRARY_PATH
+          ./plugin/tests/docc-qant-plugin_test
+
   cpp-tests-linux:
     runs-on: ubuntu-24.04
 
