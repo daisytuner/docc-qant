@@ -4,8 +4,6 @@ on:
   push:
     branches:
       - main
-  pull_request:
-    types: [opened, reopened, synchronize, ready_for_review]
 
 jobs:
   cpp-tests-debian12:
@@ -163,7 +161,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        python-version: ["3.11", "3.12", "3.13", "3.14"]
+        python-version: ["3.12", "3.13"]
 
     steps:
       - uses: actions/checkout@v4
@@ -224,7 +222,7 @@ jobs:
           pytest -v python/tests/python
 
       - name: MLIR Tests
-        if: matrix.python-version == '3.11' || matrix.python-version == '3.12' # torch-mlir release is not yet supported on newer versions
+        if: matrix.python-version == '3.12' # torch-mlir release is not yet supported on newer versions
         run: |
           # Install MLIR/LLVM 19 development packages needed to build docc-ai
           sudo apt install -y libmlir-19-dev mlir-19-tools
@@ -235,4 +233,133 @@ jobs:
           pip install --no-build-isolation -v -e 3rdParty/docc/mlir/
 
           export LD_LIBRARY_PATH=/usr/local/lib:$LD_LIBRARY_PATH
+          pytest -v python/tests/mlir
+
+  python-tests-debian12:
+    runs-on: ubuntu-latest
+    container:
+      image: debian:12
+    strategy:
+      fail-fast: false
+      matrix:
+        python-version: ["3.12", "3.13"]
+
+    steps:
+      - name: Install git and dependencies for checkout
+        run: |
+          apt-get update
+          apt-get install -y git git-lfs
+
+      - uses: actions/checkout@v4
+        with:
+          submodules: recursive
+          lfs: true
+
+      - name: Mark GitHub Actions workdir as safe
+        run: git config --global --add safe.directory "$GITHUB_WORKSPACE"
+
+      - name: Fetch LFS files
+        run: git lfs pull
+
+      - name: Install GCC-13 and clang-19
+        run: |
+          apt-get update
+          apt-get install -y \
+            wget \
+            software-properties-common \
+            gnupg2 \
+            lsb-release
+
+          # Add testing repository for GCC-13
+          echo "deb http://deb.debian.org/debian testing main" >> /etc/apt/sources.list
+          apt-get update
+          apt-get install -y -t testing gcc-13 g++-13 libstdc++-13-dev
+
+          # Set GCC-13 as default
+          update-alternatives --install /usr/bin/gcc gcc /usr/bin/gcc-13 100
+          update-alternatives --install /usr/bin/g++ g++ /usr/bin/g++-13 100
+          update-alternatives --install /usr/bin/cc cc /usr/bin/gcc-13 100
+          update-alternatives --install /usr/bin/c++ c++ /usr/bin/g++-13 100
+
+          # Add LLVM repository for clang-19
+          wget -O - https://apt.llvm.org/llvm-snapshot.gpg.key | apt-key add -
+          echo "deb http://apt.llvm.org/bookworm/ llvm-toolchain-bookworm-19 main" >> /etc/apt/sources.list.d/llvm.list
+          apt-get update
+
+      - name: Install Python ${{ matrix.python-version }}
+        run: |
+          apt-get install -y \
+            software-properties-common \
+            gpg-agent
+
+          # Add deadsnakes PPA for multiple Python versions
+          echo "deb http://ppa.launchpadcontent.net/deadsnakes/ppa/ubuntu jammy main" >> /etc/apt/sources.list.d/deadsnakes.list
+          apt-key adv --keyserver keyserver.ubuntu.com --recv-keys F23C5A6CF475977595C89F51BA6932366A755776
+          apt-get update
+
+          if [ "${{ matrix.python-version }}" = "3.12" ]; then
+            apt-get install -y python3.12 python3.12-venv python3.12-dev
+            update-alternatives --install /usr/bin/python3 python3 /usr/bin/python3.12 100
+            update-alternatives --install /usr/bin/python python /usr/bin/python3.12 100
+          elif [ "${{ matrix.python-version }}" = "3.13" ]; then
+            apt-get install -y python3.13 python3.13-venv python3.13-dev
+            update-alternatives --install /usr/bin/python3 python3 /usr/bin/python3.13 100
+            update-alternatives --install /usr/bin/python python /usr/bin/python3.13 100
+          fi
+
+          # Install pip
+          wget -O /tmp/get-pip.py https://bootstrap.pypa.io/get-pip.py
+          python /tmp/get-pip.py
+
+      - name: Install build dependencies
+        run: |
+          apt-get install -y \
+            cmake \
+            ninja-build \
+            clang-19 \
+            libgmp-dev \
+            libcurl4-gnutls-dev \
+            libisl-dev \
+            nlohmann-json3-dev \
+            libopenblas-dev
+
+      - name: Install QANT toolkit
+        run: |
+          apt-get install -y ./qant-native-computing-toolkit.2.1.0-1-amd64.deb
+
+      - name: Install DLPack headers
+        run: |
+          cd /tmp
+          wget -q https://github.com/dmlc/dlpack/archive/refs/tags/v1.2.tar.gz
+          tar -xzf v1.2.tar.gz
+          cd dlpack-1.2
+          cp -r include/dlpack /usr/local/include/
+
+      - name: Install Python dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install scikit-build-core pybind11 pytest coverage black==25.9.0
+
+      - name: Build
+        run: |
+          pip install --no-build-isolation -v -e 3rdParty/docc/python/
+          pip install --no-build-isolation -v -e python/
+
+      - name: Unit Tests
+        run: |
+          export LD_LIBRARY_PATH=/usr/local/lib:/usr/lib/gcc/x86_64-linux-gnu/13:$LD_LIBRARY_PATH
+          pytest -v python/tests/python
+
+      - name: MLIR Tests
+        if: matrix.python-version == '3.12' # torch-mlir release is not yet supported on newer versions
+        run: |
+          # Install MLIR/LLVM 19 development packages
+          apt-get install -y libmlir-19-dev mlir-19-tools
+
+          # Install torch-mlir
+          pip install torch-mlir torchvision --extra-index-url https://download.pytorch.org/whl/cpu -f https://github.com/llvm/torch-mlir-release/releases/expanded_assets/dev-wheels
+
+          pip install --no-build-isolation -v -e 3rdParty/docc/mlir/
+
+          export LD_LIBRARY_PATH=/usr/local/lib:/usr/lib/gcc/x86_64-linux-gnu/13:$LD_LIBRARY_PATH
           pytest -v python/tests/mlir
