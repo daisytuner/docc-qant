@@ -1,7 +1,6 @@
 #include <gtest/gtest.h>
 
 #include <dlfcn.h>
-#include <stdfloat>
 #include <vector>
 
 #include <sdfg/passes/dataflow/tensor_to_pointer_conversion.h>
