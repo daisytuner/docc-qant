@@ -227,6 +227,7 @@ TEST(EinsumTest, Transpose_BFloat16) {
     auto& sdfg = builder.subject();
 
     types::Scalar desc(types::PrimitiveType::BFloat);
+    types::Scalar desc_int(types::PrimitiveType::Int64);
     types::Pointer desc_ptr(desc);
 
     builder.add_container("a", desc_ptr, true);
@@ -248,6 +249,8 @@ TEST(EinsumTest, Transpose_BFloat16) {
     auto zero = symbolic::zero();
     auto i = symbolic::symbol("i");
     auto j = symbolic::symbol("j");
+    builder.add_container("i", desc_int);
+    builder.add_container("j", desc_int);
 
     auto& libnode = builder.add_library_node<
         einsum::EinsumNode,
