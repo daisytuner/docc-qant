@@ -287,30 +287,15 @@ jobs:
           echo "deb http://apt.llvm.org/bookworm/ llvm-toolchain-bookworm-19 main" >> /etc/apt/sources.list.d/llvm.list
           apt-get update
 
-      - name: Install Python ${{ matrix.python-version }}
+      - name: Set up Python ${{ matrix.python-version }}
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python-version }}
+
+      - name: Create virtual environment
         run: |
-          apt-get install -y \
-            software-properties-common \
-            gpg-agent
-
-          # Add deadsnakes PPA for multiple Python versions
-          echo "deb http://ppa.launchpadcontent.net/deadsnakes/ppa/ubuntu jammy main" >> /etc/apt/sources.list.d/deadsnakes.list
-          apt-key adv --keyserver keyserver.ubuntu.com --recv-keys F23C5A6CF475977595C89F51BA6932366A755776
-          apt-get update
-
-          if [ "${{ matrix.python-version }}" = "3.12" ]; then
-            apt-get install -y python3.12 python3.12-venv python3.12-dev
-            update-alternatives --install /usr/bin/python3 python3 /usr/bin/python3.12 100
-            update-alternatives --install /usr/bin/python python /usr/bin/python3.12 100
-          elif [ "${{ matrix.python-version }}" = "3.13" ]; then
-            apt-get install -y python3.13 python3.13-venv python3.13-dev
-            update-alternatives --install /usr/bin/python3 python3 /usr/bin/python3.13 100
-            update-alternatives --install /usr/bin/python python /usr/bin/python3.13 100
-          fi
-
-          # Install pip
-          wget -O /tmp/get-pip.py https://bootstrap.pypa.io/get-pip.py
-          python /tmp/get-pip.py
+          python -m venv .venv
+          echo "$PWD/.venv/bin" >> $GITHUB_PATH
 
       - name: Install build dependencies
         run: |
@@ -322,7 +307,9 @@ jobs:
             libcurl4-gnutls-dev \
             libisl-dev \
             nlohmann-json3-dev \
-            libopenblas-dev
+            libopenblas-dev \
+            software-properties-common \
+            gpg-agent
 
       - name: Install QANT toolkit
         run: |
