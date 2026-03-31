@@ -2,8 +2,11 @@
 #include "docc/qant/dataflow/library_nodes/math/tensor/conv_node.h"
 #include "docc/qant/dataflow/library_nodes/math/tensor/matmul_node.h"
 #include "docc/qant/dataflow/library_nodes/math/tensor/pooling_node.h"
+#include "docc/qant/passes/remapping_pass.h"
 #include "docc/qant/qant.h"
+#include "docc/qant/transformations/einsum2qant_matmul.h"
 
+#include "sdfg/analysis/analysis.h"
 #include "sdfg/data_flow/library_node.h"
 #include "sdfg/data_flow/library_nodes/math/math.h"
 #include "sdfg/data_flow/library_nodes/math/tensor/conv_node.h"
@@ -114,6 +117,23 @@ bool QantRemapping::accept(structured_control_flow::Block& node) {
             if (report_) {
                 report_->transform_applied("QantGemm");
             }
+        } else if (library_node->code() == sdfg::einsum::LibraryNodeType_Einsum.value()) {
+            auto* einsum_node = dynamic_cast<sdfg::einsum::EinsumNode*>(library_node);
+            sdfg::transformations::Einsum2QantMatmul transformation(*einsum_node, "qant");
+            if (transformation.can_be_applied(builder_, analysis_manager_)) {
+                transformation.apply(builder_, analysis_manager_);
+                made_changes = true;
+                if (report_) {
+                    report_->transform_applied("QantEinsum");
+                }
+            } else {
+                if (report_) {
+                    report_->transform_impossible("QantEinsum", "pattern not matched");
+                }
+            }
+            continue;
+        } else {
+            continue;
         }
 
         if (!new_node) {
