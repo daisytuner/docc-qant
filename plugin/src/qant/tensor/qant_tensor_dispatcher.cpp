@@ -98,6 +98,19 @@ sdfg::math::tensor::TensorLayout QantTensorLibNodeDispatcher::
     return math::tensor::TensorLayout(rev_shape, strides, layout.offset());
 }
 
+sdfg::math::tensor::TensorLayout QantTensorLibNodeDispatcher::
+    linear_layout_same_shape(const sdfg::math::tensor::TensorLayout& layout) {
+    symbolic::MultiExpression same_shape;
+    int outermost_dim = layout.dims() - 2;
+
+    for (int i = outermost_dim; i < static_cast<int>(layout.dims()); ++i) {
+        same_shape.push_back(layout.shape().at(i));
+    }
+
+    symbolic::MultiExpression strides = math::tensor::TensorLayout::linear_strides(same_shape);
+    return math::tensor::TensorLayout(same_shape, strides, layout.offset());
+}
+
 math::tensor::TensorLayout QantTensorLibNodeDispatcher::ensure_input_in_required_qant_format(
     CodegenOutput& output,
     codegen::LanguageExtension& lang_ext,
@@ -122,22 +135,36 @@ math::tensor::TensorLayout QantTensorLibNodeDispatcher::ensure_input_in_required
     auto inner_dim_size_str = lang_ext.expression(layout.get_dim_innermost(0));
     auto outer_dim_size_str = lang_ext.expression(layout.get_dim_innermost(1));
 
-    if (transposed != require_transposed) { // require a transpose
+    // Get actual strides from source layout for correct indexing
+    auto stride_outer_str = lang_ext.expression(layout.strides().at(layout.dims() - 2));
+    auto stride_inner_str = lang_ext.expression(layout.strides().at(layout.dims() - 1));
 
-        // Transpose B slice from (K, N) to (N, K) for linear_fprop
-        // linear_fprop computes features @ weights^T
-        // features = A (M, K), weights = B^T (N, K) → result = A @ B
+    if (transposed != require_transposed) { // require a layout change
+
+        // Convert between row-major and column-major layouts
+        // linear_fprop expects:
+        //   features = A (M, K) row-major, weights = B (N, K) row-major
         alloc_arr(output.main, language_extension_, target_size, target_var, tmp_allocs);
         output.main << "for (size_t __qi = 0; __qi < (size_t)(" << outer_dim_size_str << "); ++__qi) {" << std::endl;
         output.main.setIndent(output.main.indent() + 4);
         output.main << "for (size_t __qj = 0; __qj < (size_t)(" << inner_dim_size_str << "); ++__qj) {" << std::endl;
         output.main.setIndent(output.main.indent() + 4);
-        output.main << target_var << "[__qj * (" << outer_dim_size_str << ") + __qi] = ";
+
+        // Write pattern depends on whether output should be transposed
+        if (require_transposed) {
+            // Output is (inner_dim, outer_dim) row-major: target[j * outer + i]
+            output.main << target_var << "[__qj * (" << outer_dim_size_str << ") + __qi] = ";
+        } else {
+            // Output is (outer_dim, inner_dim) row-major: target[i * inner + j]
+            output.main << target_var << "[__qi * (" << inner_dim_size_str << ") + __qj] = ";
+        }
+
         bool need_conversion = input_type.primitive_type() != target_type;
         if (need_conversion) {
             output.main << "static_cast<__bf16>(";
         }
-        output.main << src_var << "[__qi * (" << inner_dim_size_str << ") + __qj]";
+        // Read using actual strides from source (handles both row-major and column-major)
+        output.main << src_var << "[__qi * (" << stride_outer_str << ") + __qj * (" << stride_inner_str << ")]";
         if (need_conversion) {
             output.main << ")";
         }
@@ -146,7 +173,13 @@ math::tensor::TensorLayout QantTensorLibNodeDispatcher::ensure_input_in_required
         output.main << "}" << std::endl;
         output.main.setIndent(output.main.indent() - 4);
         output.main << "}" << std::endl;
-        return transposed_layout_linear(layout); // we changed it, so update layout
+
+        // Return correct layout based on require_transposed
+        if (require_transposed) {
+            return transposed_layout_linear(layout);
+        } else {
+            return linear_layout_same_shape(layout);
+        }
     } else if (input_type.primitive_type() != target_type) { // only type different
         alloc_arr(output.main, language_extension_, target_size, target_var, tmp_allocs);
         QuantConversion::emit_conversion(
