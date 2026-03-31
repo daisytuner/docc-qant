@@ -44,6 +44,11 @@ protected:
      */
     sdfg::math::tensor::TensorLayout transposed_layout_linear(const sdfg::math::tensor::TensorLayout& layout);
 
+    /**
+     * Returns a layout with the same shape (last 2 dims) but row-major strides
+     */
+    sdfg::math::tensor::TensorLayout linear_layout_same_shape(const sdfg::math::tensor::TensorLayout& layout);
+
     sdfg::math::tensor::TensorLayout ensure_input_in_required_qant_format(
         CodegenOutput& output,
         sdfg::codegen::LanguageExtension& lang_ext,
