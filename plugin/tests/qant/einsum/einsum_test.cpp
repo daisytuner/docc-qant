@@ -79,7 +79,7 @@ TEST(EinsumTest, Matmul_2D_BFloat16) {
         const std::vector<einsum::EinsumDimension>&,
         const data_flow::Subset&,
         const std::vector<data_flow::Subset>&>(
-        block, DebugInfo(), {"_in1", "_in2"}, {{i, zero, l}, {j, zero, m}, {k, zero, n}}, {i, j}, {{i, k}, {k, j}}
+        block, DebugInfo(), {"_in1", "_in2"}, {{i, zero, l}, {j, zero, m}, {k, zero, n}}, {i, j}, {{i, k}, {k, j}}, false
     );
 
     builder.add_computational_memlet(block, a_node, libnode, "_in1", {}, input_tensor_a, block.debug_info());
@@ -129,10 +129,7 @@ TEST(EinsumTest, Matmul_2D_BFloat16) {
     EXPECT_TRUE(symbolic::eq(einsum_node->in_index(2, 1), j));
 
     auto symbols = einsum_node->symbols();
-    EXPECT_EQ(symbols.size(), 6);
-    EXPECT_TRUE(symbols.contains(i));
-    EXPECT_TRUE(symbols.contains(j));
-    EXPECT_TRUE(symbols.contains(k));
+    EXPECT_EQ(symbols.size(), 3);
     EXPECT_TRUE(symbols.contains(l));
     EXPECT_TRUE(symbols.contains(m));
     EXPECT_TRUE(symbols.contains(n));
@@ -262,7 +259,8 @@ TEST(EinsumTest, Transpose_BFloat16) {
         {"_in1"},
         {{i, zero, symbolic::integer(8)}, {j, zero, symbolic::integer(4)}},
         {i, j},
-        {{j, i}}
+        {{j, i}},
+        false
     );
 
     builder.add_computational_memlet(block, a_node, libnode, "_in1", {}, input_tensor_a, block.debug_info());
@@ -383,7 +381,8 @@ TEST(EinsumTest, GEMM_3D_Batched_BFloat16) {
          {j, zero, symbolic::integer(6)},
          {k, zero, symbolic::integer(8)}},
         {b, i, j},
-        {{b, i, k}, {b, k, j}}
+        {{b, i, k}, {b, k, j}},
+        false
     );
 
     builder.add_computational_memlet(block, a_node, libnode, "_in1", {}, input_tensor_a, block.debug_info());
