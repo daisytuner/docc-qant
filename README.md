@@ -133,8 +133,8 @@ pip install -e 3rdParty/docc/python/
 pip install -e python/
 
 # Install pytorch support (docc-ai, requires additional system packages)
-pip install torch-mlir torchvision --extra-index-url https://download.pytorch.org/whl/cpu \
-  -f https://github.com/llvm/torch-mlir-release/releases/expanded_assets/dev-wheels
+pip install torch==2.10.0+cpu torchvision==0.25.0+cpu --extra-index-url https://download.pytorch.org/whl/cpu
+pip install torch-mlir==20260309.746 -f https://github.com/llvm/torch-mlir-release/releases/expanded_assets/dev-wheels
 pip install -e 3rdParty/docc/mlir/
 
 # Optional: Install development tools
