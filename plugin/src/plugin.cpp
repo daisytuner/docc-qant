@@ -10,6 +10,7 @@
 #include "docc/qant/tensor/matmul.h"
 #include "docc/qant/tensor/pooling.h"
 #include "sdfg/codegen/code_generators/cpp_code_generator.h"
+#include "sdfg/passes/einsum.h"
 #include "sdfg/passes/pipeline.h"
 #include "sdfg/structured_sdfg.h"
 
@@ -122,6 +123,10 @@ void register_plugin(sdfg::plugins::Context& context) {
 void expand(sdfg::StructuredSDFG& sdfg) {
     sdfg::builder::StructuredSDFGBuilder builder(sdfg);
     sdfg::analysis::AnalysisManager analysis_manager(sdfg);
+
+    // Convert einsum into blas nodes (best-effort)
+    sdfg::passes::EinsumConversionPass einsum_conversion_pass;
+    einsum_conversion_pass.run(builder, analysis_manager);
 
     // Run expansion pass
     sdfg::passes::QantRemappingPass remapping;
