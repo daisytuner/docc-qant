@@ -9,11 +9,11 @@
 #include <vector>
 
 #include "docc/qant/dataflow/library_nodes/math/tensor/matmul_node.h"
-#include "docc/qant/dataflow/library_nodes/math/tensor/tensor_layout.h"
 #include "docc/qant/qant.h"
 #include "sdfg/analysis/analysis.h"
 #include "sdfg/builder/structured_sdfg_builder.h"
 #include "sdfg/data_flow/library_node.h"
+#include "sdfg/data_flow/library_nodes/math/tensor/tensor_layout.h"
 #include "sdfg/einsum/einsum.h"
 #include "sdfg/symbolic/symbolic.h"
 #include "sdfg/transformations/transformation.h"

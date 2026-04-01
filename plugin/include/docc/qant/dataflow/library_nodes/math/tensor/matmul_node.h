@@ -39,8 +39,8 @@
 #pragma once
 
 #include "sdfg/data_flow/library_nodes/math/tensor/matmul_node.h"
+#include "sdfg/data_flow/library_nodes/math/tensor/tensor_layout.h"
 #include "sdfg/data_flow/library_nodes/math/tensor/tensor_node.h"
-#include "tensor_layout.h"
 
 #include "sdfg/function.h"
 #include "sdfg/serializer/json_serializer.h"
