@@ -64,3 +64,16 @@ def test_chained_matmul_bf16():
     D = matmul_bf16_chained(A, B, C)
     D_ref = (np.matmul(np.matmul(A, B), C)).astype(ml_dtypes.bfloat16)
     np.testing.assert_allclose(D, D_ref, rtol=2e-2, atol=0)
+
+
+def test_einsum_matmul_bf16():
+    @native(target="qant")
+    def einsum_matmul_bf16(a, b):
+        return np.einsum("ik,kj->ij", a, b)
+
+    M, K, N = 32, 48, 64
+    A = np.random.rand(M, K).astype(ml_dtypes.bfloat16)
+    B = np.random.rand(K, N).astype(ml_dtypes.bfloat16)
+    D = einsum_matmul_bf16(A, B)
+    D_ref = (np.matmul(A, B)).astype(ml_dtypes.bfloat16)
+    np.testing.assert_allclose(D, D_ref, rtol=2e-2, atol=0)

@@ -1,8 +1,8 @@
 #pragma once
 
-#include "docc/qant/dataflow/library_nodes/math/tensor/tensor_layout.h"
 #include "docc/qant/passes/reduce_quantization_pass.h"
 #include "sdfg/codegen/dispatchers/block_dispatcher.h"
+#include "sdfg/data_flow/library_nodes/math/tensor/tensor_layout.h"
 
 namespace docc::qant::tensor {
 
