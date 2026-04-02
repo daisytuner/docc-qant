@@ -47,6 +47,8 @@ std::string QantReLUNode::toStr() const {
     return ss.str();
 }
 
+void QantReLUNode::set_quantization(const types::PrimitiveType quant) { quantization_ = quant; }
+
 symbolic::Expression QantReLUNode::flop() const {
     // ReLU performs one comparison operation per element: max(0, x)
     // FLOP count is the total number of elements

@@ -38,7 +38,8 @@ bool QantRemapping::accept(structured_control_flow::Block& node) {
             continue;
         }
 
-        if (library_node->code() == math::tensor::LibraryNodeType_MatMul.value()) {
+        auto& libNode_code = library_node->code();
+        if (libNode_code == math::tensor::LibraryNodeType_MatMul.value()) {
             auto* matmul_node = dynamic_cast<math::tensor::MatMulNode*>(library_node);
             auto layout_a =
                 math::tensor::TensorLayout(matmul_node->shape_a(), matmul_node->strides_a(), matmul_node->offset_a());
@@ -58,7 +59,7 @@ bool QantRemapping::accept(structured_control_flow::Block& node) {
             if (report_) {
                 report_->transform_applied("QantMatmul");
             }
-        } else if (library_node->code() == math::tensor::LibraryNodeType_Conv.value()) {
+        } else if (libNode_code == math::tensor::LibraryNodeType_Conv.value()) {
             auto* conv_node = dynamic_cast<math::tensor::ConvNode*>(library_node);
 
             // QANT conv_fprop does not support bias — skip if "B" is connected
@@ -93,7 +94,7 @@ bool QantRemapping::accept(structured_control_flow::Block& node) {
             if (report_) {
                 report_->transform_applied("QantConv");
             }
-        } else if (library_node->code() == math::tensor::LibraryNodeType_Pooling.value()) {
+        } else if (libNode_code == math::tensor::LibraryNodeType_Pooling.value()) {
             auto* pooling_node = dynamic_cast<math::tensor::PoolingNode*>(library_node);
             auto quantization = pooling_node->primitive_type(dataflow);
             new_node = &builder_.add_library_node<math::tensor::QantPoolingNode>(
@@ -111,7 +112,7 @@ bool QantRemapping::accept(structured_control_flow::Block& node) {
             if (report_) {
                 report_->transform_applied("QantPooling");
             }
-        } else if (library_node->code() == math::tensor::LibraryNodeType_ReLU.value()) {
+        } else if (libNode_code == math::tensor::LibraryNodeType_ReLU.value()) {
             auto* relu_node = dynamic_cast<math::tensor::ReLUNode*>(library_node);
             auto quantization = relu_node->primitive_type(dataflow);
             new_node = &builder_.add_library_node<
@@ -120,7 +121,7 @@ bool QantRemapping::accept(structured_control_flow::Block& node) {
             if (report_) {
                 report_->transform_applied("QantReLU");
             }
-        } else if (library_node->code() == sdfg::math::blas::LibraryNodeType_GEMM.value()) {
+        } else if (libNode_code == sdfg::math::blas::LibraryNodeType_GEMM.value()) {
             auto* gemm_node = dynamic_cast<sdfg::math::blas::GEMMNode*>(library_node);
 
             gemm_node->implementation_type() = docc::qant::ImplementationType_QANT;
