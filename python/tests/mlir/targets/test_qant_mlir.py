@@ -210,3 +210,30 @@ def test_avgpool2d_batched_compile():
         res_ref = model_ref(example_input)
     assert res.shape == (4, 2, 3, 3)
     assert torch.allclose(res, res_ref, atol=1e-2)
+
+
+def test_relu2d():
+    class ReluNet(nn.Module):
+        def __init__(self):
+            super().__init__()
+            self.act = nn.ReLU()
+
+        def forward(self, x: torch.Tensor):
+            return self.act(x)
+
+    model = ReluNet()
+    model.eval()
+    example_input = torch.tensor(
+        [
+            [[[-5, 0, -1], [-2, -3, -3]]],
+            [[[0, 0, 0], [0, 0, 0]]],
+            [[[1, 2, 3], [0.5, 0.25, 5]]],
+            [[[3, -1, 0], [0.5, -0.25, -5]]],
+        ]
+    )
+
+    program = torch.compile(model, backend="docc")
+    with torch.no_grad():
+        res = program(example_input)
+
+    assert torch.allclose(res, example_input.relu(), atol=1e-2)

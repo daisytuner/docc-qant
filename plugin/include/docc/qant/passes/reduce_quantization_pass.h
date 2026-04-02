@@ -8,6 +8,7 @@
 #include <sdfg/structured_control_flow/block.h>
 #include <sdfg/visitor/structured_sdfg_visitor.h>
 
+#include "docc/qant/dataflow/library_nodes/math/tensor/matmul_node.h"
 #include "sdfg/codegen/code_snippet_factory.h"
 #include "sdfg/codegen/language_extension.h"
 #include "sdfg/codegen/utils.h"
@@ -20,16 +21,19 @@ class ReduceQuantizationVisitor : public sdfg::visitor::ActualStructuredSDFGVisi
     friend class ReduceQuantizationPass;
 
     struct EdgeQuantizationInfo {
-        sdfg::data_flow::Memlet memlet;
+        const sdfg::data_flow::Memlet& memlet;
         std::optional<sdfg::types::PrimitiveType> reduced_src_type;
         std::optional<sdfg::types::PrimitiveType> reduced_dst_type;
     };
+
+    struct ContainerQuantizationInfo {};
 
 protected:
     sdfg::builder::StructuredSDFGBuilder& builder_;
     sdfg::analysis::AnalysisManager& analysis_manager_;
 
     std::unordered_map<size_t, EdgeQuantizationInfo> edge_queue_;
+    std::unordered_map<std::string, ContainerQuantizationInfo> container_queue_;
 
 public:
     ReduceQuantizationVisitor(
@@ -39,6 +43,20 @@ public:
     bool visit(sdfg::structured_control_flow::Block& node) override;
 
     bool filter(sdfg::data_flow::LibraryNode& node);
+
+    void check_in_edge_for_modification(
+        const sdfg::data_flow::DataFlowGraph& dflow,
+        const sdfg::data_flow::LibraryNode& node,
+        sdfg::types::PrimitiveType new_op_type,
+        const sdfg::data_flow::Memlet* memlet
+    );
+
+    void check_out_edges_for_modification(
+        const sdfg::data_flow::DataFlowGraph& dflow,
+        const sdfg::data_flow::LibraryNode& node,
+        sdfg::types::PrimitiveType new_op_type,
+        std::vector<const sdfg::data_flow::Memlet*> memlets
+    );
 
     bool try_reduce(
         sdfg::data_flow::LibraryNode& node,
