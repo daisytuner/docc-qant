@@ -60,6 +60,8 @@ public:
 
     types::PrimitiveType quantization() const { return quantization_; }
 
+    void set_quantization(const types::PrimitiveType quant);
+
     symbolic::Expression flop() const override;
 
     std::unique_ptr<data_flow::DataFlowNode>

@@ -1,6 +1,7 @@
 #include "docc/qant/passes/reduce_quantization_pass.h"
 
 #include "docc/qant/dataflow/library_nodes/math/tensor/conv_node.h"
+#include "docc/qant/dataflow/library_nodes/math/tensor/elementwise_ops/relu_node.h"
 #include "docc/qant/dataflow/library_nodes/math/tensor/matmul_node.h"
 #include "docc/qant/dataflow/library_nodes/math/tensor/pooling_node.h"
 #include "docc/qant/qant.h"
@@ -37,18 +38,40 @@ bool ReduceQuantizationVisitor::try_reduce(
         auto& matmul_node = dynamic_cast<sdfg::math::tensor::QantMatMulNode&>(node);
         if (matmul_node.quantization() == sdfg::types::Float) {
             matmul_node.set_quantization(sdfg::types::BFloat);
+            check_in_edge_for_modification(
+                dflow, node, types::BFloat, dflow.in_edge_for_connector(node, matmul_node.input(0))
+            );
+            check_in_edge_for_modification(
+                dflow, node, types::BFloat, dflow.in_edge_for_connector(node, matmul_node.input(1))
+            );
+            // check_out_edges_for_modification(dflow, node, types::BFloat, dflow.out_edges_for_connector(node,
+            // matmul_node.output(0))); expected to change for safer modelling
         }
-
-        // queue edges!
     } else if (code == sdfg::math::tensor::LibraryNodeType_QantConv) {
         auto& conv_node = dynamic_cast<sdfg::math::tensor::QantConvNode&>(node);
         if (conv_node.quantization() == sdfg::types::Float) {
             conv_node.set_quantization(sdfg::types::BFloat);
+            // wait on standardized handling of optional inputs
         }
     } else if (code == sdfg::math::tensor::LibraryNodeType_QantPooling) {
         auto& pooling_node = dynamic_cast<sdfg::math::tensor::QantPoolingNode&>(node);
         if (pooling_node.quantization() == sdfg::types::Float) {
             pooling_node.set_quantization(sdfg::types::BFloat);
+            check_in_edge_for_modification(
+                dflow, node, types::BFloat, dflow.in_edge_for_connector(node, pooling_node.input(0))
+            );
+            // check_out_edges_for_modification(dflow, node, types::BFloat, dflow.out_edges_for_connector(node,
+            // pooling_node.output(0))); expected to change for safer modelling
+        }
+    } else if (code == sdfg::math::tensor::LibraryNodeType_QantReLU) {
+        auto& relu_node = dynamic_cast<sdfg::math::tensor::QantReLUNode&>(node);
+        if (relu_node.quantization() == types::Float) {
+            relu_node.set_quantization(types::BFloat);
+            check_in_edge_for_modification(
+                dflow, node, types::BFloat, dflow.in_edge_for_connector(node, relu_node.input(0))
+            );
+            // check_out_edges_for_modification(dflow, node, types::BFloat, dflow.out_edges_for_connector(node,
+            // relu_node.output(0))); expected to change for safer modelling
         }
     }
 
@@ -61,6 +84,49 @@ bool ReduceQuantizationVisitor::filter(sdfg::data_flow::LibraryNode& node) {
 
     return type;
 }
+
+void ReduceQuantizationVisitor::check_in_edge_for_modification(
+    const sdfg::data_flow::DataFlowGraph& dflow,
+    const sdfg::data_flow::LibraryNode& node,
+    sdfg::types::PrimitiveType new_op_type,
+    const sdfg::data_flow::Memlet* memlet
+) {
+    if (memlet) {
+        auto& src_node = memlet->src();
+        auto& edge_type = memlet->base_type();
+        auto in_type = edge_type.primitive_type();
+        auto* access_node = dynamic_cast<const data_flow::AccessNode*>(&src_node);
+        if (in_type != new_op_type && access_node) {
+            edge_queue_.insert({memlet->element_id(), {*memlet, std::nullopt, new_op_type}});
+            if (!dynamic_cast<const data_flow::ConstantNode*>(access_node)) {
+                container_queue_.insert({access_node->data(), {}});
+            }
+        }
+    }
+}
+
+void ReduceQuantizationVisitor::check_out_edges_for_modification(
+    const sdfg::data_flow::DataFlowGraph& dflow,
+    const sdfg::data_flow::LibraryNode& node,
+    sdfg::types::PrimitiveType new_op_type,
+    std::vector<const sdfg::data_flow::Memlet*> memlets
+) {
+    for (auto* memlet : memlets) {
+        if (memlet) {
+            auto& dst_node = memlet->dst();
+            auto& edge_type = memlet->base_type();
+            auto in_type = edge_type.primitive_type();
+            auto* access_node = dynamic_cast<const data_flow::AccessNode*>(&dst_node);
+            if (in_type != new_op_type && access_node) {
+                edge_queue_.insert({memlet->element_id(), {*memlet, new_op_type, std::nullopt}});
+                if (!dynamic_cast<const data_flow::ConstantNode*>(access_node)) {
+                    container_queue_.insert({access_node->data(), {}});
+                }
+            }
+        }
+    }
+}
+
 
 ReduceQuantizationPass::ReduceQuantizationPass() : Pass() {}
 
