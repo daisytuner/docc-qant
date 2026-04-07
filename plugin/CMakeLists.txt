@@ -3,19 +3,22 @@
 set(SOURCE_FILES_PRIVATE
     src/plugin.cpp
     src/qant/blas/gemm.cpp
+    src/qant/dataflow/library_nodes/math/tensor/conv_node.cpp
+    src/qant/dataflow/library_nodes/math/tensor/elementwise_ops/relu_node.cpp
+    src/qant/dataflow/library_nodes/math/tensor/elementwise_ops/sigmoid_node.cpp
+    src/qant/dataflow/library_nodes/math/tensor/matmul_node.cpp
+    src/qant/dataflow/library_nodes/math/tensor/pooling_node.cpp
     src/qant/passes/reduce_quantization_pass.cpp
     src/qant/passes/remapping_pass.cpp
     src/qant/qant_offloaded_visitor.cpp
     src/qant/tensor/conv.cpp
     src/qant/tensor/matmul.cpp
     src/qant/tensor/qant_tensor_dispatcher.cpp
-    src/qant/transformations/einsum2qant_matmul.cpp
-    src/qant/dataflow/library_nodes/math/tensor/conv_node.cpp
-    src/qant/dataflow/library_nodes/math/tensor/matmul_node.cpp
     src/qant/tensor/pooling.cpp
-    src/qant/dataflow/library_nodes/math/tensor/pooling_node.cpp
     src/qant/tensor/relu.cpp
-    src/qant/dataflow/library_nodes/math/tensor/elementwise_ops/relu_node.cpp
+    src/qant/tensor/sigmoid_dispatcher.cpp
+    src/qant/tensor/unary_elementwise_base_dispatcher.cpp
+    src/qant/transformations/einsum2qant_matmul.cpp
 )
 
 add_library(docc-qant-plugin STATIC

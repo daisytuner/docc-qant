@@ -6,11 +6,11 @@
 #include <sdfg/passes/dataflow/tensor_to_pointer_conversion.h>
 #include <sdfg/passes/targets/target_mapping_pass.h>
 
-#include "../../../../3rdParty/docc/sdfg/tests/sdfg_debug_dump.h"
 #include "sdfg/analysis/analysis.h"
 #include "sdfg/builder/structured_sdfg_builder.h"
 #include "sdfg/data_flow/library_nodes/math/tensor/matmul_node.h"
 #include "sdfg/passes/pipeline.h"
+#include "sdfg_debug_dump.h"
 
 #include "docc/qant/dataflow/library_nodes/math/tensor/matmul_node.h"
 #include "docc/qant/passes/remapping_pass.h"

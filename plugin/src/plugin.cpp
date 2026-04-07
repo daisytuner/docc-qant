@@ -1,7 +1,9 @@
 #include "docc/qant/plugin.h"
 #include "docc/qant/blas/gemm.h"
 #include "docc/qant/dataflow/library_nodes/math/tensor/conv_node.h"
+#include "docc/qant/dataflow/library_nodes/math/tensor/elementwise_ops/qant_elementwise_base_serializer.h"
 #include "docc/qant/dataflow/library_nodes/math/tensor/elementwise_ops/relu_node.h"
+#include "docc/qant/dataflow/library_nodes/math/tensor/elementwise_ops/sigmoid_node.h"
 #include "docc/qant/dataflow/library_nodes/math/tensor/matmul_node.h"
 #include "docc/qant/dataflow/library_nodes/math/tensor/pooling_node.h"
 #include "docc/qant/passes/remapping_pass.h"
@@ -28,6 +30,7 @@
 #include <sdfg/data_flow/library_nodes/math/tensor/pooling_node.h>
 #include <sdfg/passes/targets/target_mapping_pass.h>
 
+#include "docc/qant/tensor/sigmoid_dispatcher.h"
 #include "sdfg/visualizer/dot_visualizer.h"
 
 sdfg::plugins::Plugin register_docc_plugin() {
@@ -136,10 +139,34 @@ void register_plugin(sdfg::plugins::Context& context) {
         }
     );
 
+    // Register Q.ANT Sigmoid dispatcher
+    context.library_node_dispatcher_registry.register_library_node_dispatcher(
+        sdfg::math::tensor::LibraryNodeType_QantSigmoid.value() + "::" + docc::qant::ImplementationType_QANT.value(),
+        [](sdfg::codegen::LanguageExtension& language_extension,
+           const sdfg::Function& function,
+           const sdfg::data_flow::DataFlowGraph& data_flow_graph,
+           const sdfg::data_flow::LibraryNode& node) {
+            return std::make_unique<docc::qant::tensor::SigmoidNodeDispatcher_QANT>(
+                language_extension,
+                function,
+                data_flow_graph,
+                dynamic_cast<const sdfg::math::tensor::QantSigmoidNode&>(node)
+            );
+        }
+    );
+
     // Register QantReLU serializer
     context.library_node_serializer_registry
         .register_library_node_serializer(sdfg::math::tensor::LibraryNodeType_QantReLU.value(), []() {
-            return std::make_unique<sdfg::math::tensor::QantReLUNodeSerializer>();
+            return std::make_unique<
+                sdfg::math::tensor::QantElementWiseBaseSerializer<sdfg::math::tensor::QantReLUNode>>();
+        });
+
+    // Register QantSigmoid serializer
+    context.library_node_serializer_registry
+        .register_library_node_serializer(sdfg::math::tensor::LibraryNodeType_QantSigmoid.value(), []() {
+            return std::make_unique<
+                sdfg::math::tensor::QantElementWiseBaseSerializer<sdfg::math::tensor::QantSigmoidNode>>();
         });
 
     std::cout << "Q.ANT plugin registered with docc compiler!" << std::endl;
