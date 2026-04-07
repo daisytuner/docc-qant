@@ -176,10 +176,6 @@ void expand(sdfg::StructuredSDFG& sdfg) {
     sdfg::builder::StructuredSDFGBuilder builder(sdfg);
     sdfg::analysis::AnalysisManager analysis_manager(sdfg);
 
-    // Convert einsum into blas nodes (best-effort)
-    sdfg::passes::EinsumConversionPass einsum_conversion_pass;
-    einsum_conversion_pass.run(builder, analysis_manager);
-
     // Run expansion pass
     sdfg::passes::QantRemappingPass remapping;
     remapping.run(builder, analysis_manager);
