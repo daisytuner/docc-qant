@@ -9,7 +9,6 @@
 
 #include <sdfg/passes/dataflow/tensor_to_pointer_conversion.h>
 #include <sdfg/passes/pipeline.h>
-#include "../../../../3rdParty/docc/sdfg/tests/sdfg_debug_dump.h"
 #include "docc/qant/dataflow/library_nodes/math/tensor/matmul_node.h"
 #include "docc/qant/passes/remapping_pass.h"
 #include "docc/qant/qant.h"
@@ -28,6 +27,7 @@
 #include "sdfg/types/pointer.h"
 #include "sdfg/types/scalar.h"
 #include "sdfg/types/type.h"
+#include "sdfg_debug_dump.h"
 
 #include "docc/qant/plugin.h"
 #include "docc/qant/qant.h"

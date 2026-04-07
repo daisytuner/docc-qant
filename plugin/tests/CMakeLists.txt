@@ -15,12 +15,14 @@ set(TEST_FILES
     qant/tensor/matmul_test.cpp
     qant/tensor/pooling_test.cpp
     qant/tensor/relu_test.cpp
+    qant/tensor/sigmoid_test.cpp
     test.cpp
 )
 
 # Now simply link against gtest or gtest_main as needed. Eg
 add_executable(docc-qant-plugin_test ${TEST_FILES})
 target_link_libraries(docc-qant-plugin_test gtest_main docc-qant-plugin)
+target_include_directories(docc-qant-plugin_test PRIVATE ${CMAKE_CURRENT_SOURCE_DIR})
 
 if(DOCC_TESTS_ENABLE_DUMP)
     target_compile_definitions(docc-qant-plugin_test PRIVATE

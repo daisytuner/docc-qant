@@ -1,19 +1,19 @@
 #pragma once
 
-#include "docc/qant/dataflow/library_nodes/math/tensor/elementwise_ops/relu_node.h"
+#include "docc/qant/dataflow/library_nodes/math/tensor/elementwise_ops/sigmoid_node.h"
 #include "docc/qant/tensor/unary_elementwise_base_dispatcher.h"
 
 namespace docc {
 namespace qant {
 namespace tensor {
 
-class ReLUNodeDispatcher_QANT : public UnaryElementWiseBaseDispatcher {
+class SigmoidNodeDispatcher_QANT : public UnaryElementWiseBaseDispatcher {
 public:
-    ReLUNodeDispatcher_QANT(
+    SigmoidNodeDispatcher_QANT(
         sdfg::codegen::LanguageExtension& language_extension,
         const sdfg::Function& function,
         const sdfg::data_flow::DataFlowGraph& data_flow_graph,
-        const sdfg::math::tensor::QantReLUNode& node
+        const sdfg::math::tensor::QantSigmoidNode& node
     );
 
 protected:

@@ -1,14 +1,6 @@
-/**
- * @file relu_node.h
- * @brief ReLU activation node for QANT backend
- *
- * This file defines the QantReLUNode class which implements a ReLU activation
- * operation for the QANT accelerator.
- */
-
 #pragma once
 
-#include "sdfg/data_flow/library_nodes/math/tensor/elementwise_ops/relu_node.h"
+#include "sdfg/data_flow/library_nodes/math/tensor/elementwise_ops/sigmoid_node.h"
 #include "sdfg/data_flow/library_nodes/math/tensor/tensor_node.h"
 
 #include "sdfg/function.h"
@@ -17,22 +9,9 @@ namespace sdfg {
 namespace math {
 namespace tensor {
 
-inline data_flow::LibraryNodeCode LibraryNodeType_QantReLU("ml::QantReLU");
+inline data_flow::LibraryNodeCode LibraryNodeType_QantSigmoid("ml::QantSigmoid");
 
-/**
- * @class QantReLUNode
- * @brief ReLU activation node for QANT backend
- *
- * QantReLUNode represents a ReLU activation operation that is executed on
- * the QANT accelerator using the qant_native_computing_toolkit::relu_fprop API.
- *
- * ## Input/Output Requirements
- * - Input connector "X": Input tensor of any shape
- * - Output connector "Y": Output tensor with same shape as input
- *
- * The operation computes: Y = max(0, X) element-wise
- */
-class QantReLUNode : public ReLUNode {
+class QantSigmoidNode : public SigmoidNode {
     types::PrimitiveType quantization_;
 
 public:
@@ -45,7 +24,7 @@ public:
      * @param quantization Primitive type for computation (typically BFloat16)
      * @param shape Shape of the input/output tensor
      */
-    QantReLUNode(
+    QantSigmoidNode(
         size_t element_id,
         const DebugInfo& debug_info,
         const graph::Vertex vertex,

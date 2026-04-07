@@ -9,20 +9,22 @@
 
 #include "sdfg/analysis/analysis.h"
 #include "sdfg/builder/structured_sdfg_builder.h"
-#include "sdfg/data_flow/library_nodes/math/tensor/elementwise_ops/relu_node.h"
+#include "sdfg/data_flow/library_nodes/math/tensor/elementwise_ops/sigmoid_node.h"
 #include "sdfg/passes/pipeline.h"
 #include "sdfg_debug_dump.h"
 
-#include "docc/qant/dataflow/library_nodes/math/tensor/elementwise_ops/relu_node.h"
+#include "docc/qant/dataflow/library_nodes/math/tensor/elementwise_ops/sigmoid_node.h"
 #include "docc/qant/passes/remapping_pass.h"
 #include "docc/qant/plugin.h"
 #include "docc/qant/qant.h"
 
 using namespace sdfg;
 
-TEST(ReLUTest, ReLU_1D_Vector) {
+float ref_sigmoid(float x) { return 1.0f / (1.0f + std::exp(-x)); }
+
+TEST(SigmoidTest, Sigmoid_1D_Vector) {
     // Test simple 1D vector ReLU: Y = max(0, X) for X[N]
-    builder::StructuredSDFGBuilder builder("relu_1d", FunctionType_CPU);
+    builder::StructuredSDFGBuilder builder("sigmoid_1d", FunctionType_CPU);
 
     auto& sdfg = builder.subject();
 
@@ -43,22 +45,21 @@ TEST(ReLUTest, ReLU_1D_Vector) {
     types::Tensor input_tensor(desc.primitive_type(), shape);
     types::Tensor output_tensor(desc.primitive_type(), shape);
 
-    auto& relu_node =
-        static_cast<math::tensor::ReLUNode&>(builder.add_library_node<math::tensor::ReLUNode>(block, DebugInfo(), shape)
-        );
+    auto& sigmoid_node = static_cast<
+        math::tensor::SigmoidNode&>(builder.add_library_node<math::tensor::SigmoidNode>(block, DebugInfo(), shape));
 
-    builder.add_computational_memlet(block, x_node, relu_node, "X", {}, input_tensor, block.debug_info());
-    builder.add_computational_memlet(block, relu_node, "Y", y_node, {}, output_tensor, block.debug_info());
+    builder.add_computational_memlet(block, x_node, sigmoid_node, "X", {}, input_tensor, block.debug_info());
+    builder.add_computational_memlet(block, sigmoid_node, "Y", y_node, {}, output_tensor, block.debug_info());
 
     // Check basic properties
-    EXPECT_EQ(relu_node.inputs().size(), 1);
-    EXPECT_EQ(relu_node.inputs()[0], "X");
-    EXPECT_EQ(relu_node.outputs().size(), 1);
-    EXPECT_EQ(relu_node.outputs()[0], "Y");
+    EXPECT_EQ(sigmoid_node.inputs().size(), 1);
+    EXPECT_EQ(sigmoid_node.inputs()[0], "X");
+    EXPECT_EQ(sigmoid_node.outputs().size(), 1);
+    EXPECT_EQ(sigmoid_node.outputs()[0], "Y");
 
     sdfg.validate();
 
-    EXPECT_EQ(block.dataflow().nodes().size(), 3); // x, y, relu
+    EXPECT_EQ(block.dataflow().nodes().size(), 3); // x, y, sigmoid
 
     sdfg.validate();
 
@@ -77,7 +78,7 @@ TEST(ReLUTest, ReLU_1D_Vector) {
 
     auto library_nodes = block.dataflow().library_nodes();
     EXPECT_EQ(library_nodes.size(), 1);
-    auto* new_node = dynamic_cast<sdfg::math::tensor::QantReLUNode*>(*library_nodes.begin());
+    auto* new_node = dynamic_cast<sdfg::math::tensor::QantSigmoidNode*>(*library_nodes.begin());
     EXPECT_TRUE(new_node);
     EXPECT_EQ(new_node->implementation_type(), docc::qant::ImplementationType_QANT.value());
 
@@ -94,7 +95,7 @@ TEST(ReLUTest, ReLU_1D_Vector) {
 
     sdfg.validate();
 
-    std::string lib_path = docc::qant::compile(sdfg, "/tmp/relu_1d_direct/", "qant", "", false);
+    std::string lib_path = docc::qant::compile(sdfg, "/tmp/sigmoid_1d_direct/", "qant", "", false);
 
     void* h = dlopen(lib_path.c_str(), RTLD_LAZY);
     ASSERT_NE(h, nullptr) << dlerror();
@@ -112,24 +113,24 @@ TEST(ReLUTest, ReLU_1D_Vector) {
         X[i] = (__bf16) (static_cast<float>(i - 8) * 0.5f); // Range: -4.0 to 3.5
     }
 
-    // Compute reference ReLU
+    // Compute reference Sigmoid
     for (int i = 0; i < N; ++i) {
         float val = static_cast<float>(X[i]);
-        Y_ref[i] = (val > 0.0f) ? val : 0.0f;
+        Y_ref[i] = ref_sigmoid(val);
     }
 
     fn(X.data(), Y_result.data());
 
     for (int i = 0; i < N; ++i) {
-        EXPECT_NEAR(static_cast<float>(Y_result[i]), Y_ref[i], 1e-3f) << "Mismatch at index " << i;
+        EXPECT_NEAR(static_cast<float>(Y_result[i]), Y_ref[i], 1e-2f) << "Mismatch at index " << i;
     }
 
     dlclose(h);
 }
 
-TEST(ReLUTest, ReLU_2D_Matrix) {
-    // Test 2D matrix ReLU: Y = max(0, X) for X[M, N]
-    builder::StructuredSDFGBuilder builder("relu_2d", FunctionType_CPU);
+TEST(SigmoidTest, Sigmoid_2D_Matrix) {
+    // Test 2D matrix Sigmoid: Y = 1/exp(-X) for X[M, N]
+    builder::StructuredSDFGBuilder builder("sigmoid_2d", FunctionType_CPU);
 
     auto& sdfg = builder.subject();
 
@@ -150,12 +151,11 @@ TEST(ReLUTest, ReLU_2D_Matrix) {
     types::Tensor input_tensor(desc.primitive_type(), shape);
     types::Tensor output_tensor(desc.primitive_type(), shape);
 
-    auto& relu_node =
-        static_cast<math::tensor::ReLUNode&>(builder.add_library_node<math::tensor::ReLUNode>(block, DebugInfo(), shape)
-        );
+    auto& sigmoid_node = static_cast<
+        math::tensor::SigmoidNode&>(builder.add_library_node<math::tensor::SigmoidNode>(block, DebugInfo(), shape));
 
-    builder.add_computational_memlet(block, x_node, relu_node, "X", {}, input_tensor, block.debug_info());
-    builder.add_computational_memlet(block, relu_node, "Y", y_node, {}, output_tensor, block.debug_info());
+    builder.add_computational_memlet(block, x_node, sigmoid_node, "X", {}, input_tensor, block.debug_info());
+    builder.add_computational_memlet(block, sigmoid_node, "Y", y_node, {}, output_tensor, block.debug_info());
 
     sdfg.validate();
 
@@ -174,7 +174,7 @@ TEST(ReLUTest, ReLU_2D_Matrix) {
 
     auto library_nodes = block.dataflow().library_nodes();
     EXPECT_EQ(library_nodes.size(), 1);
-    auto* new_node = dynamic_cast<sdfg::math::tensor::QantReLUNode*>(*library_nodes.begin());
+    auto* new_node = dynamic_cast<sdfg::math::tensor::QantSigmoidNode*>(*library_nodes.begin());
     EXPECT_TRUE(new_node);
     EXPECT_EQ(new_node->implementation_type(), docc::qant::ImplementationType_QANT.value());
 
@@ -191,7 +191,7 @@ TEST(ReLUTest, ReLU_2D_Matrix) {
 
     sdfg.validate();
 
-    std::string lib_path = docc::qant::compile(sdfg, "/tmp/relu_2d_direct/", "qant", "", false);
+    std::string lib_path = docc::qant::compile(sdfg, "/tmp/sigmoid_2d_direct/", "qant", "", false);
 
     void* h = dlopen(lib_path.c_str(), RTLD_LAZY);
     ASSERT_NE(h, nullptr) << dlerror();
@@ -210,16 +210,16 @@ TEST(ReLUTest, ReLU_2D_Matrix) {
         X[i] = (__bf16) (static_cast<float>(i - 16) * 0.25f); // Range: -4.0 to 3.75
     }
 
-    // Compute reference ReLU
+    // Compute reference Sigmoid
     for (int i = 0; i < total; ++i) {
         float val = static_cast<float>(X[i]);
-        Y_ref[i] = (val > 0.0f) ? val : 0.0f;
+        Y_ref[i] = ref_sigmoid(val);
     }
 
     fn(X.data(), Y_result.data());
 
     for (int i = 0; i < total; ++i) {
-        EXPECT_NEAR(static_cast<float>(Y_result[i]), Y_ref[i], 1e-3f) << "Mismatch at index " << i;
+        EXPECT_NEAR(static_cast<float>(Y_result[i]), Y_ref[i], 1e-2f) << "Mismatch at index " << i;
     }
 
     dlclose(h);

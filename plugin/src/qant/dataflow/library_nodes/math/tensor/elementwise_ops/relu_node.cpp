@@ -2,8 +2,6 @@
 #include <sstream>
 #include <string>
 
-#include "sdfg/builder/structured_sdfg_builder.h"
-#include "sdfg/serializer/json_serializer.h"
 #include "sdfg/types/type.h"
 
 namespace sdfg {
@@ -66,47 +64,6 @@ std::unique_ptr<data_flow::DataFlowNode> QantReLUNode::
     );
 }
 
-nlohmann::json QantReLUNodeSerializer::serialize(const data_flow::LibraryNode& library_node) {
-    const QantReLUNode& relu_node = static_cast<const QantReLUNode&>(library_node);
-    nlohmann::json j;
-
-    j["code"] = relu_node.code().value();
-
-    serializer::JSONSerializer serializer;
-    j["shape"] = nlohmann::json::array();
-    for (auto& dim : relu_node.shape()) {
-        j["shape"].push_back(serializer.expression(dim));
-    }
-    j["result_quant"] = relu_node.quantization();
-
-    return j;
-}
-
-data_flow::LibraryNode& QantReLUNodeSerializer::deserialize(
-    const nlohmann::json& j, builder::StructuredSDFGBuilder& builder, structured_control_flow::Block& parent
-) {
-    assert(j.contains("element_id"));
-    assert(j.contains("code"));
-    assert(j.contains("debug_info"));
-    assert(j.contains("shape"));
-
-    serializer::JSONSerializer serializer;
-
-    std::vector<symbolic::Expression> shape;
-    for (const auto& dim : j["shape"]) {
-        shape.push_back(symbolic::parse(dim.get<std::string>()));
-    }
-
-    auto result_quant = j.find("result_quant");
-    types::PrimitiveType quantization = types::PrimitiveType::BFloat;
-    if (result_quant != j.end()) {
-        quantization = result_quant->get<types::PrimitiveType>();
-    }
-
-    DebugInfo debug_info = serializer.json_to_debug_info(j["debug_info"]);
-
-    return builder.add_library_node<QantReLUNode>(parent, debug_info, quantization, shape);
-}
 
 } // namespace tensor
 } // namespace math
