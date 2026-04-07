@@ -78,6 +78,7 @@ def test_einsum_matmul_bf16():
     D_ref = (np.matmul(A, B)).astype(ml_dtypes.bfloat16)
     np.testing.assert_allclose(D, D_ref, rtol=2e-2, atol=0)
 
+
 def test_einsum_batched_matmul_bf16():
     @native(target="qant")
     def batched_einsum_matmul_bf16(a, b):
