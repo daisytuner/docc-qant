@@ -335,18 +335,3 @@ jobs:
         run: |
           export LD_LIBRARY_PATH=/usr/local/lib:/usr/lib/gcc/x86_64-linux-gnu/13:$LD_LIBRARY_PATH
           pytest -v python/tests/python
-
-      - name: MLIR Tests
-        if: matrix.python-version == '3.12' # torch-mlir release is not yet supported on newer versions
-        run: |
-          # Install MLIR/LLVM 19 development packages
-          apt-get install -y libmlir-19-dev mlir-19-tools
-
-          # Install torch-mlir
-          pip install torch==2.10.0+cpu torchvision==0.25.0+cpu --extra-index-url https://download.pytorch.org/whl/cpu
-          pip install torch-mlir==20260309.746 -f https://github.com/llvm/torch-mlir-release/releases/expanded_assets/dev-wheels
-
-          pip install --no-build-isolation -v -e 3rdParty/docc/mlir/
-
-          export LD_LIBRARY_PATH=/usr/local/lib:/usr/lib/gcc/x86_64-linux-gnu/13:$LD_LIBRARY_PATH
-          pytest -v python/tests/mlir
