@@ -66,6 +66,7 @@ target_link_libraries(docc-qant-plugin
     PUBLIC
         sdfg::sdfg
         sdfg::opt
+        ${CMAKE_DL_LIBS}
 )
 set_target_properties(docc-qant-plugin PROPERTIES
     VERSION ${PROJECT_VERSION}
