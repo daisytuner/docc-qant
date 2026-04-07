@@ -19,6 +19,8 @@
 
 #include <stdexcept>
 
+#include "docc/qant/dataflow/library_nodes/math/tensor/elementwise_ops/sigmoid_node.h"
+
 namespace sdfg {
 namespace passes {
 
@@ -120,6 +122,15 @@ bool QantRemapping::accept(structured_control_flow::Block& node) {
             new_node->implementation_type() = docc::qant::ImplementationType_QANT;
             if (report_) {
                 report_->transform_applied("QantReLU");
+            }
+        } else if (libNode_code == math::tensor::LibraryNodeType_Sigmoid.value()) {
+            auto* sigmoid_node = dynamic_cast<math::tensor::SigmoidNode*>(library_node);
+            auto quantization = sigmoid_node->primitive_type(dataflow);
+            new_node = &builder_.add_library_node<
+                math::tensor::QantSigmoidNode>(node, sigmoid_node->debug_info(), quantization, sigmoid_node->shape());
+            new_node->implementation_type() = docc::qant::ImplementationType_QANT;
+            if (report_) {
+                report_->transform_applied("QantSigmoid");
             }
         } else if (libNode_code == sdfg::math::blas::LibraryNodeType_GEMM.value()) {
             auto* gemm_node = dynamic_cast<sdfg::math::blas::GEMMNode*>(library_node);
