@@ -30,8 +30,11 @@ classifiers = [
 ]
 
 dependencies = [
-  "docc-compiler>=0.0.5"
+  "docc-compiler==0.0.6",
 ]
+
+[project.optional-dependencies]
+ai = ["docc-ai==0.0.6"]
 
 [project.urls]
 Homepage = "https://daisytuner.com"
