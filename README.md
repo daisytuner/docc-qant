@@ -1,37 +1,12 @@
 # docc-qant
 
-A plugin for DOCC (Daisytuner Optimizing Compiler Collection) that adds support for the Qant native computing toolkit, enabling efficient execution of numerical computations with bfloat16 precision. The `docc-qant` plugin extends DOCC with Qant target support, allowing you to compile and execute Python functions with numpy operations on Qant hardware.
+A plugin for [DOCC](https://github.com/daisytuner/docc) (Daisytuner Optimizing Compiler Collection) that adds support for the Q.ANT native computing toolkit, enabling efficient execution of numerical computations with bfloat16 precision.
 
-## Quick Start
+For Python/PyPI usage, see [`python/README.md`](python/README.md).
 
-```python
-import numpy as np
-import ml_dtypes
-from docc.python import native
-from docc.qant import register_docc_plugin
+## Prerequisites
 
-# Register the Qant target
-register_docc_plugin()
-
-# Decorate functions to run on Qant hardware
-@native(target="qant")
-def matmul_bf16(a, b):
-    return a @ b
-
-# Use standard numpy arrays with bfloat16 precision
-M, K, N = 32, 48, 64
-A = np.random.rand(M, K).astype(ml_dtypes.bfloat16)
-B = np.random.rand(K, N).astype(ml_dtypes.bfloat16)
-
-# Automatically compiled and executed on Qant hardware
-C = matmul_bf16(A, B)
-```
-
-## Installation
-
-### Prerequisites
-
-#### System Requirements
+### System Requirements
 - Linux (Ubuntu 24.04 or similar)
 - Git with LFS support
 - CMake 3.15+
@@ -39,7 +14,7 @@ C = matmul_bf16(A, B)
 - Clang 19
 - Python 3.11, 3.12, 3.13, or 3.14
 
-#### System Dependencies
+### System Dependencies
 
 Install required packages:
 
@@ -74,15 +49,14 @@ cd dlpack-1.2
 sudo cp -r include/dlpack /usr/local/include/
 ```
 
-You will also need the Qant Native Computing Toolkit (proprietary):
+You will also need the Q.ANT Native Computing Toolkit (proprietary):
 ```bash
-# Install the Qant toolkit
 sudo apt install ./qant-native-computing-toolkit.2.1.0-1-amd64.deb
 ```
 
-### Building from Source
+## Building from Source
 
-#### 1. Clone the Repository
+### 1. Clone the Repository
 
 ```bash
 git clone --recursive https://github.com/your-org/docc-qant.git
@@ -90,7 +64,7 @@ cd docc-qant
 git lfs pull
 ```
 
-#### 3. Build C++ Plugin
+### 2. Build C++ Plugin
 
 ```bash
 mkdir build && cd build
@@ -111,7 +85,7 @@ sudo ninja install
 - `DOCC_QANT_ENABLE_COVERAGE`: Enable code coverage (default: OFF)
 - `BUILD_TESTS`: Build C++ tests (default: OFF)
 
-#### 4. Install Python Bindings
+### 3. Install Python Bindings
 
 ```bash
 cd ..  # Back to repository root
@@ -142,7 +116,7 @@ pip install pytest  # For running tests
 pip install black   # For code formatting
 ```
 
-##### MLIR Support
+#### MLIR Support
 
 Building the `docc-ai` (MLIR) Python package for pytorch support requires MLIR/LLVM 19 development packages:
 
@@ -152,7 +126,7 @@ sudo apt install -y libmlir-19-dev mlir-19-tools
 
 These provide the MLIR CMake config files and headers needed by `3rdParty/docc/mlir/`. The MLIR wheel also requires `torch-mlir` (only supported on Python 3.11 and 3.12).
 
-#### 5. Verify Installation
+### 4. Verify Installation
 
 ```bash
 # Set library path
@@ -171,14 +145,14 @@ cd build
 
 ### Running Tests
 
-#### C++ Tests
+### C++ Tests
 
 ```bash
 cd build
 ./plugin/tests/docc-qant-plugin_test
 ```
 
-#### Python Tests
+### Python Tests
 
 ```bash
 export LD_LIBRARY_PATH=/usr/local/lib:$LD_LIBRARY_PATH

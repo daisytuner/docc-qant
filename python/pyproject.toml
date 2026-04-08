@@ -9,7 +9,8 @@ build-backend = "scikit_build_core.build"
 name = "docc-qant"
 dynamic = ["version"]
 description = "Q.ANT target extension for the docc compiler"
-readme = "../README.md"
+readme = "README.md"
+license = { text = "BSD-3-Clause" }
 authors = [{ name = "Daisytuner", email = "hello@daisytuner.com" }]
 maintainers = [{ name = "Daisytuner", email = "hello@daisytuner.com" }]
 requires-python = ">=3.11"
@@ -30,11 +31,11 @@ classifiers = [
 ]
 
 dependencies = [
-  "docc-compiler==0.0.6",
+  "docc-compiler==0.0.7",
 ]
 
 [project.optional-dependencies]
-ai = ["docc-ai==0.0.6"]
+ai = ["docc-ai==0.0.7"]
 
 [project.urls]
 Homepage = "https://daisytuner.com"
@@ -70,9 +71,22 @@ manylinux-aarch64-image = "manylinux_2_28"
 test-command = "python -c \"import docc.qant; print('docc.qant imported successfully')\""
 test-requires = ["numpy", "pytest", "scipy"]
 
+[[tool.cibuildwheel.overrides]]
+# Only install AI extra on Python 3.12
+select = "cp312-*"
+test-requires = ["numpy", "pytest", "scipy", "docc-ai==0.0.7"]
+
 [tool.cibuildwheel.linux]
 before-all = [
-  "yum install -y boost-devel gmp-devel cmake ninja-build git libcurl-devel autoconf automake libtool",
+  "yum install -y boost-devel gmp-devel cmake ninja-build git libcurl-devel autoconf automake libtool openblas-devel",
+  "ln -sf /usr/include/openblas/*.h /usr/include/",
+  "git clone --depth 1 --branch v1.0 https://github.com/dmlc/dlpack.git /tmp/dlpack && cp -r /tmp/dlpack/include/dlpack /usr/include/",
+  "cp {project}/api/qant_native_computing_toolkit.h /usr/include/",
+  "cd /tmp && ar x {project}/qant-native-computing-toolkit.2.1.0-1-amd64.deb && tar -xf data.tar.xz -C / && ldconfig",
+  "ln -sf /usr/lib/x86_64-linux-gnu/libqant_native_computing_toolkit.so.2.1.0 /usr/lib64/libqant_native_computing_toolkit.so",
+  "ln -sf /usr/lib/x86_64-linux-gnu/libqant_native_computing_toolkit.so.2.1.0 /usr/lib64/libqant_native_computing_toolkit.so.2.1.0",
+  "ldconfig",
+  "ln -sf /usr/lib64/libopenblas.so /usr/lib64/libblas.so",
   "git clone --depth 1 --branch v3.11.3 https://github.com/nlohmann/json.git /tmp/nlohmann_json",
   "cmake -S /tmp/nlohmann_json -B /tmp/nlohmann_json/build -DJSON_BuildTests=OFF",
   "cmake --install /tmp/nlohmann_json/build",
