@@ -38,12 +38,7 @@ void MatMulNodeDispatcher_QANT::dispatch_code(
     sdfg::codegen::PrettyPrinter& globals_stream,
     sdfg::codegen::CodeSnippetFactory& library_snippet_factory
 ) {
-    globals_stream << "#include <stdfloat>" << std::endl;
-    globals_stream << "#include <dlpack/dlpack.h>" << std::endl;
-    globals_stream << "#include <qant_native_computing_toolkit.h>" << std::endl;
-    globals_stream << "#include <cstdlib>" << std::endl;
-    globals_stream << "#include <cstring>" << std::endl;
-    globals_stream << "#include <stdexcept>" << std::endl;
+    QantTensorLibNodeDispatcher::emit_qant_includes_once(globals_stream, library_snippet_factory);
 
     auto& dflow = node_.get_parent();
 
@@ -198,32 +193,7 @@ void MatMulNodeDispatcher_QANT::dispatch_code(
     stream.setIndent(stream.indent() - 4);
     stream << "}" << std::endl;
 
-    auto need_result_conversion = output_memlet->base_type().primitive_type() != required_math_type;
-    auto y_src = "__qant_managed_result";
-    stream << "__bf16* " << y_src << " = reinterpret_cast<__bf16*>(__qant_result->dl_tensor.data);" << std::endl;
-    stream << "for (size_t __q_i = 0; __q_i < " << size_C << "; ++__q_i) {" << std::endl;
-    stream.changeIndent(+4);
-    stream << y_dst_var << "[__q_i] = ";
-    if (need_result_conversion) {
-        stream << "static_cast<" << language_extension_.primitive_type(output_memlet->base_type().primitive_type())
-               << ">(";
-    }
-    stream << y_src << "[__q_i]";
-    if (need_result_conversion) {
-        stream << ")";
-    }
-    stream << ";" << std::endl;
-    stream.changeIndent(-4);
-    stream << "}" << std::endl;
-
-    stream << std::endl;
-
-    stream << "if (__qant_result->deleter) {" << std::endl;
-    stream.setIndent(stream.indent() + 4);
-    stream << "__qant_result->deleter(__qant_result);" << std::endl;
-    stream.setIndent(stream.indent() - 4);
-    stream << "}" << std::endl;
-    stream << std::endl;
+    emit_copy_result_back_and_cleanup(output, output_memlet, "__qant_result", y_dst_var, size_C, required_math_type);
 
     for (auto& alloc : temp_allocs) {
         stream << "free(" << alloc << ");" << std::endl;

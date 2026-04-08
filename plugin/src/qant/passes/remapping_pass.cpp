@@ -20,6 +20,7 @@
 #include <stdexcept>
 
 #include "docc/qant/dataflow/library_nodes/math/tensor/elementwise_ops/sigmoid_node.h"
+#include "sdfg/data_flow/library_nodes/math/tensor/batchnorm_node.h"
 
 namespace sdfg {
 namespace passes {
@@ -139,6 +140,23 @@ bool QantRemapping::accept(structured_control_flow::Block& node) {
             made_changes = true;
             if (report_) {
                 report_->transform_applied("QantGemm");
+            }
+        } else if (libNode_code == math::tensor::LibraryNodeType_BatchNorm.value()) {
+            auto* batchnorm_node = dynamic_cast<math::tensor::BatchNormNode*>(library_node);
+            auto quantization = batchnorm_node->primitive_type(dataflow);
+            if (quantization == types::Float && batchnorm_node->batch_layout().dims() == 4) { // only batchnorm2d and
+                                                                                              // float
+                batchnorm_node->implementation_type() = docc::qant::ImplementationType_QANT;
+                batchnorm_node->set_quantization(types::BFloat);
+                made_changes = true;
+
+                if (report_) {
+                    report_->transform_applied("QantBatchnorm");
+                }
+            } else {
+                if (report_) {
+                    report_->transform_impossible("QantBatchnorm", "not 2d or float");
+                }
             }
         } else if (library_node->code() == sdfg::einsum::LibraryNodeType_Einsum.value()) {
             auto* einsum_node = dynamic_cast<sdfg::einsum::EinsumNode*>(library_node);

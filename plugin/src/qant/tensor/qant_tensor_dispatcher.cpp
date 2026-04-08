@@ -8,6 +8,36 @@ namespace docc::qant::tensor {
 
 using namespace sdfg;
 
+void QantTensorLibNodeDispatcher::
+    emit_qant_includes_once(codegen::PrettyPrinter& stream, codegen::CodeSnippetFactory& code_snippet_factory) {
+    auto marker = "qant_includes_once";
+
+    if (code_snippet_factory.find(marker) == code_snippet_factory.snippets().end()) {
+        code_snippet_factory.require(marker, "", false);
+        // hacky way to only emit to global once
+        stream << "#include <stdfloat>" << std::endl;
+        stream << "#include <dlpack/dlpack.h>" << std::endl;
+        stream << "#include <qant_native_computing_toolkit.h>" << std::endl;
+        stream << "#include <cstdlib>" << std::endl;
+        stream << "#include <cstring>" << std::endl;
+        stream << "#include <stdexcept>" << std::endl;
+
+        stream << std::endl;
+    }
+}
+
+const sdfg::data_flow::Memlet* QantTensorLibNodeDispatcher::require_unique_output_edge(
+    const sdfg::data_flow::DataFlowGraph& dflow, const sdfg::data_flow::LibraryNode& node, const std::string& conn
+) {
+    auto edges = dflow.out_edges_for_connector(node, conn);
+    if (edges.size() != 1) {
+        throw std::runtime_error(
+            "QANT dispatcher: expected 1 output edge for " + conn + " on elem " + std::to_string(node.element_id())
+        );
+    }
+    return edges.at(0);
+}
+
 QantTensorLibNodeDispatcher::QantTensorLibNodeDispatcher(
     sdfg::codegen::LanguageExtension& language_extension,
     const sdfg::Function& function,
@@ -109,6 +139,48 @@ sdfg::math::tensor::TensorLayout QantTensorLibNodeDispatcher::
 
     symbolic::MultiExpression strides = math::tensor::TensorLayout::linear_strides(same_shape);
     return math::tensor::TensorLayout(same_shape, strides, layout.offset());
+}
+
+void QantTensorLibNodeDispatcher::emit_copy_result_back_and_cleanup(
+    CodegenOutput& output,
+    const sdfg::data_flow::Memlet* output_memlet,
+    const std::string& result_var,
+    const std::string& output_data_var,
+    const std::string& out_size,
+    types::PrimitiveType required_math_type
+) {
+    auto need_result_conversion = output_memlet->base_type().primitive_type() != required_math_type;
+    auto result_data_var = "__qant_managed_result";
+    auto& stream = output.main;
+    stream << "__bf16* " << result_data_var << " = reinterpret_cast<__bf16*>(" << result_var << "->dl_tensor.data);"
+           << std::endl;
+    stream << "for (size_t __q_i = 0; __q_i < " << out_size << "; ++__q_i) {" << std::endl;
+    stream.changeIndent(+4);
+    stream << output_data_var << "[__q_i] = ";
+    if (need_result_conversion) {
+        stream << "static_cast<" << language_extension_.primitive_type(output_memlet->base_type().primitive_type())
+               << ">(";
+    }
+    stream << result_data_var << "[__q_i]";
+    if (need_result_conversion) {
+        stream << ")";
+    }
+    stream << ";" << std::endl;
+    stream.changeIndent(-4);
+    stream << "}" << std::endl;
+
+    stream << std::endl;
+
+    stream << "if (" << result_var << "->deleter) {" << std::endl;
+    stream.setIndent(stream.indent() + 4);
+    stream << "" << result_var << "->deleter(" << result_var << ");" << std::endl;
+    stream.setIndent(stream.indent() - 4);
+    stream << "}" << std::endl;
+    stream << std::endl;
+}
+
+void QantTensorLibNodeDispatcher::emit_qant_npu_id(CodegenOutput& output) {
+    output.main << "const uint32_t __qant_npu_id = 0;" << std::endl;
 }
 
 math::tensor::TensorLayout QantTensorLibNodeDispatcher::ensure_input_in_required_qant_format(
