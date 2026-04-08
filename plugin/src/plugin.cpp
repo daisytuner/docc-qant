@@ -30,7 +30,9 @@
 #include <sdfg/data_flow/library_nodes/math/tensor/pooling_node.h>
 #include <sdfg/passes/targets/target_mapping_pass.h>
 
+#include "docc/qant/tensor/batchnorm_dispatcher.h"
 #include "docc/qant/tensor/sigmoid_dispatcher.h"
+#include "sdfg/data_flow/library_nodes/math/tensor/batchnorm_node.h"
 #include "sdfg/visualizer/dot_visualizer.h"
 
 sdfg::plugins::Plugin register_docc_plugin() {
@@ -151,6 +153,22 @@ void register_plugin(sdfg::plugins::Context& context) {
                 function,
                 data_flow_graph,
                 dynamic_cast<const sdfg::math::tensor::QantSigmoidNode&>(node)
+            );
+        }
+    );
+
+    // Register Q.ANT Batchnorm dispatcher
+    context.library_node_dispatcher_registry.register_library_node_dispatcher(
+        sdfg::math::tensor::LibraryNodeType_BatchNorm.value() + "::" + docc::qant::ImplementationType_QANT.value(),
+        [](sdfg::codegen::LanguageExtension& language_extension,
+           const sdfg::Function& function,
+           const sdfg::data_flow::DataFlowGraph& data_flow_graph,
+           const sdfg::data_flow::LibraryNode& node) {
+            return std::make_unique<docc::qant::tensor::BatchnormNodeDispatcher_QANT>(
+                language_extension,
+                function,
+                data_flow_graph,
+                dynamic_cast<const sdfg::math::tensor::BatchNormNode&>(node)
             );
         }
     );
@@ -357,11 +375,6 @@ std::string compile(
     fs::path source_path = build_path / (sdfg.name() + ".cpp");
 
     sdfg::analysis::AnalysisManager analysis_manager(sdfg);
-
-    // Run expansion pass
-    sdfg::passes::Pipeline expansion = sdfg::passes::Pipeline::expansion();
-    sdfg::builder::StructuredSDFGBuilder builder_opt(sdfg);
-    expansion.run(builder_opt, analysis_manager);
 
     // Instrumentation plan
     std::unique_ptr<sdfg::codegen::InstrumentationPlan> instrumentation_plan;

@@ -2,6 +2,7 @@
 
 #include "docc/qant/passes/reduce_quantization_pass.h"
 #include "sdfg/codegen/dispatchers/block_dispatcher.h"
+#include "sdfg/codegen/utils.h"
 #include "sdfg/data_flow/library_nodes/math/tensor/tensor_layout.h"
 
 namespace docc::qant::tensor {
@@ -60,6 +61,26 @@ protected:
         sdfg::types::PrimitiveType target_type,
         bool require_transposed,
         std::vector<std::string>& tmp_allocs
+    );
+
+    void emit_copy_result_back_and_cleanup(
+        CodegenOutput& output,
+        const sdfg::data_flow::Memlet* output_memlet,
+        const std::string& result_var,
+        const std::string& output_data_var,
+        const std::string& out_size,
+        sdfg::types::PrimitiveType required_math_type
+    );
+
+    void emit_qant_npu_id(CodegenOutput& output);
+
+public:
+    static void emit_qant_includes_once(
+        sdfg::codegen::PrettyPrinter& stream, sdfg::codegen::CodeSnippetFactory& code_snippet_factory
+    );
+
+    static const sdfg::data_flow::Memlet* require_unique_output_edge(
+        const sdfg::data_flow::DataFlowGraph& dflow, const sdfg::data_flow::LibraryNode& node, const std::string& conn
     );
 };
 
