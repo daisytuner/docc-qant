@@ -61,25 +61,6 @@ jobs:
 
           ./plugin/tests/docc-qant-plugin_test
 
-      # - name: Unit Tests
-      #   run: |
-      #     cd build/
-      #     LLVM_PROFILE_FILE="docc-qant-plugin_test.profraw" ./plugin/tests/docc-qant-plugin_test
-
-      #     cd ../
-      #     llvm-cov-19 export ./build/plugin/tests/docc-qant-plugin_test -format=lcov > build/coverage_full.lcov
-      #     lcov --extract build/coverage_full.lcov '*/plugin/src/*' '*/plugin/include/*' --output-file build/coverage.lcov
-
-      # - name: Coveralls
-      #   uses: coverallsapp/github-action@v2
-      #   with:
-      #     format: lcov
-      #     parallel: true
-      #     file: build/coverage.lcov
-
-      # - name: Coveralls
-      #   uses: coverallsapp/github-action@v2
-
   python-tests-linux:
     runs-on:
       group: dahlia
@@ -160,16 +141,3 @@ jobs:
           export LD_LIBRARY_PATH=/usr/local/lib:$LD_LIBRARY_PATH
           coverage run --source=python/docc -m pytest -v python/tests/mlir
           coverage xml
-
-      # - name: Coveralls
-      #   uses: coverallsapp/github-action@v2
-      #   with:
-      #     flag-name: python-${{ matrix.python-version }}
-      #     parallel: true
-      #     format: cobertura
-      #     file: coverage.xml
-
-      # - name: Integration Tests
-      #   run: |
-      #     export LD_LIBRARY_PATH=/usr/local/lib:$LD_LIBRARY_PATH
-      #     pytest -v python/benchmarks/
