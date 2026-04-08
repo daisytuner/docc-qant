@@ -22,27 +22,12 @@ UnaryElementWiseBaseDispatcher::UnaryElementWiseBaseDispatcher(
 )
     : QantTensorLibNodeDispatcher(language_extension, function, data_flow_graph, node), ew_node_(ew_node) {}
 
-static const sdfg::data_flow::Memlet* require_unique_output_edge(
-    const sdfg::data_flow::DataFlowGraph& dflow, const sdfg::data_flow::LibraryNode& node, const std::string& conn
-) {
-    auto edges = dflow.out_edges_for_connector(node, conn);
-    if (edges.size() != 1) {
-        throw std::runtime_error("QANT UnaryElementWiseBaseDispatcher: expected 1 output edge for " + conn);
-    }
-    return edges.at(0);
-}
-
 void UnaryElementWiseBaseDispatcher::dispatch_code(
     sdfg::codegen::PrettyPrinter& stream,
     sdfg::codegen::PrettyPrinter& globals_stream,
     sdfg::codegen::CodeSnippetFactory& library_snippet_factory
 ) {
-    globals_stream << "#include <stdfloat>" << std::endl;
-    globals_stream << "#include <dlpack/dlpack.h>" << std::endl;
-    globals_stream << "#include <qant_native_computing_toolkit.h>" << std::endl;
-    globals_stream << "#include <cstdlib>" << std::endl;
-    globals_stream << "#include <cstring>" << std::endl;
-    globals_stream << "#include <stdexcept>" << std::endl;
+    QantTensorLibNodeDispatcher::emit_qant_includes_once(globals_stream, library_snippet_factory);
 
     auto& dflow = node_.get_parent();
 
@@ -97,27 +82,9 @@ void UnaryElementWiseBaseDispatcher::dispatch_code(
         x_bf16_var = "X";
     }
 
-    // Create DLPack tensor wrapper for input (flattened to 1D)
-    stream << "// Create DLPack 1D tensor wrapper for input" << std::endl;
-    stream << "int64_t __qant_input_shape[1] = {(int64_t)__qant_ew_size};" << std::endl;
-    stream << "int64_t __qant_input_strides[1] = {1};" << std::endl;
-    stream << "DLManagedTensorVersioned __qant_tensor_X;" << std::endl;
-    stream << "__qant_tensor_X.version.major = DLPACK_MAJOR_VERSION;" << std::endl;
-    stream << "__qant_tensor_X.version.minor = DLPACK_MINOR_VERSION;" << std::endl;
-    stream << "__qant_tensor_X.manager_ctx = nullptr;" << std::endl;
-    stream << "__qant_tensor_X.deleter = nullptr;" << std::endl;
-    stream << "__qant_tensor_X.flags = 0;" << std::endl;
-    stream << "__qant_tensor_X.dl_tensor.data = (void*)" << x_bf16_var << ";" << std::endl;
-    stream << "__qant_tensor_X.dl_tensor.device.device_type = kDLCPU;" << std::endl;
-    stream << "__qant_tensor_X.dl_tensor.device.device_id = 0;" << std::endl;
-    stream << "__qant_tensor_X.dl_tensor.ndim = 1;" << std::endl;
-    stream << "__qant_tensor_X.dl_tensor.dtype.code = kDLBfloat;" << std::endl;
-    stream << "__qant_tensor_X.dl_tensor.dtype.bits = 16;" << std::endl;
-    stream << "__qant_tensor_X.dl_tensor.dtype.lanes = 1;" << std::endl;
-    stream << "__qant_tensor_X.dl_tensor.shape = __qant_input_shape;" << std::endl;
-    stream << "__qant_tensor_X.dl_tensor.strides = __qant_input_strides;" << std::endl;
-    stream << "__qant_tensor_X.dl_tensor.byte_offset = 0;" << std::endl;
-    stream << std::endl;
+    emit_dlpack_tensor_wrapper(
+        stream, "__qant_tensor_X", x_bf16_var, math::tensor::TensorLayout({size_expr}, {symbolic::one()}), 1
+    );
 
     // ── Operator-specific toolkit call (subclass hook) ──────────────────
     emit_toolkit_call(stream);
@@ -132,36 +99,7 @@ void UnaryElementWiseBaseDispatcher::dispatch_code(
     stream << "}" << std::endl;
     stream << std::endl;
 
-    // Copy result back and convert if necessary
-    stream << "__bf16* __qant_result_data = reinterpret_cast<__bf16*>(__qant_result->dl_tensor.data);" << std::endl;
-
-    if (need_y_conversion) {
-        QuantConversion::emit_conversion(
-            output,
-            language_extension_,
-            "__qant_result_data",
-            types::Pointer(types::Scalar(target_type)),
-            "Y",
-            output_memlet->base_type(),
-            symbolic::integer(0),
-            size_expr
-        );
-    } else {
-        stream << "for (size_t __qant_i = 0; __qant_i < __qant_ew_size; ++__qant_i) {" << std::endl;
-        stream.setIndent(stream.indent() + 4);
-        stream << "Y[__qant_i] = __qant_result_data[__qant_i];" << std::endl;
-        stream.setIndent(stream.indent() - 4);
-        stream << "}" << std::endl;
-    }
-    stream << std::endl;
-
-    // Clean up QANT result
-    stream << "if (__qant_result->deleter) {" << std::endl;
-    stream.setIndent(stream.indent() + 4);
-    stream << "__qant_result->deleter(__qant_result);" << std::endl;
-    stream.setIndent(stream.indent() - 4);
-    stream << "}" << std::endl;
-    stream << std::endl;
+    emit_copy_result_back_and_cleanup(output, output_memlet, "__qant_result", "Y", size_str, types::BFloat);
 
     // Free temporary allocations
     for (auto& alloc : temp_allocs) {

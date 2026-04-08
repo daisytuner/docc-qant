@@ -64,12 +64,7 @@ void ConvNodeDispatcher_QANT::dispatch_code(
     sdfg::codegen::PrettyPrinter& globals_stream,
     sdfg::codegen::CodeSnippetFactory& library_snippet_factory
 ) {
-    globals_stream << "#include <stdfloat>" << std::endl;
-    globals_stream << "#include <dlpack/dlpack.h>" << std::endl;
-    globals_stream << "#include <qant_native_computing_toolkit.h>" << std::endl;
-    globals_stream << "#include <cstdlib>" << std::endl;
-    globals_stream << "#include <cstring>" << std::endl;
-    globals_stream << "#include <stdexcept>" << std::endl;
+    QantTensorLibNodeDispatcher::emit_qant_includes_once(globals_stream, library_snippet_factory);
 
     // Get memlets to determine actual data types
     auto& dflow = node_.get_parent();

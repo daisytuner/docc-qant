@@ -29,6 +29,9 @@ namespace tensor {
  *   - "DLManagedTensorVersioned* __qant_result"
  */
 class UnaryElementWiseBaseDispatcher : public QantTensorLibNodeDispatcher {
+protected:
+    const sdfg::math::tensor::ElementWiseUnaryNode& ew_node_;
+
 public:
     UnaryElementWiseBaseDispatcher(
         sdfg::codegen::LanguageExtension& language_extension,
@@ -57,8 +60,6 @@ protected:
      * @brief Human-readable name used in error messages (e.g. "relu_fprop").
      */
     virtual std::string toolkit_function_name() const = 0;
-
-    const sdfg::math::tensor::ElementWiseUnaryNode& ew_node_;
 };
 
 } // namespace tensor
