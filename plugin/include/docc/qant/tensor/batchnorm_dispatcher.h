@@ -23,6 +23,17 @@ protected:
     void emit_error_check(sdfg::codegen::PrettyPrinter& stream, std::string result_var);
     void emit_toolkit_call(sdfg::codegen::PrettyPrinter& stream, std::string result_var);
     std::string toolkit_function_name() const;
+
+private:
+    void emit_dlpack_tensor_wrapper_4d(
+        sdfg::codegen::PrettyPrinter& stream,
+        const std::string& var_name,
+        const std::string& data_ptr,
+        const std::string& dim0,
+        const std::string& dim1,
+        const std::string& dim2,
+        const std::string& dim3
+    );
 };
 
 } // namespace docc::qant::tensor

@@ -11,6 +11,7 @@ option(DOCC_TESTS_ENABLE_DUMP "Enable dumping intermediary files of test cases" 
 set(TEST_FILES
     # qant/blas/gemm_test.cpp
     qant/einsum/einsum_test.cpp
+    qant/tensor/batchnorm_test.cpp
     qant/tensor/conv_test.cpp
     qant/tensor/matmul_test.cpp
     qant/tensor/pooling_test.cpp
