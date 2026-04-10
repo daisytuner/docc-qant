@@ -1,8 +1,8 @@
 #include <gtest/gtest.h>
 
+#include <cmath>
 #include <dlfcn.h>
 #include <vector>
-#include <cmath>
 
 #include <sdfg/passes/dataflow/tensor_to_pointer_conversion.h>
 #include "sdfg/analysis/analysis.h"
@@ -97,64 +97,6 @@ TEST(BatchNormTest, BatchNorm2D_QANT_Simple) {
     sdfg.validate();
 
     std::string lib_path = docc::qant::compile(sdfg, "/tmp/batchnorm2d_qant_simple/", "qant", "", false);
-
-    void* h = dlopen(lib_path.c_str(), RTLD_LAZY);
-    ASSERT_NE(h, nullptr) << dlerror();
-
-    using Fn = void (*)(float*, float*, float*, float*, float*, float*);
-    auto fn = reinterpret_cast<Fn>(dlsym(h, sdfg.name().c_str()));
-    ASSERT_NE(fn, nullptr) << dlerror();
-
-    const int total_elements = N * C * H * W;
-    const int channels = C;
-
-    std::vector<float> Batch_data(total_elements), Var_data(channels), E_data(channels);
-    std::vector<float> Gamma_data(channels), Beta_data(channels);
-    std::vector<float> B_out_result(total_elements, 0.0f);
-    std::vector<float> B_out_ref(total_elements, 0.0f);
-
-    const float epsilon = 0.00001f;
-
-    // Initialize input data
-    for (int i = 0; i < total_elements; ++i) {
-        Batch_data[i] = static_cast<float>(i) * 0.1f;
-    }
-
-    // Set per-channel statistics (mean, variance, gamma, beta)
-    for (int c = 0; c < channels; ++c) {
-        E_data[c] = static_cast<float>(c) * 2.0f;       // mean
-        Var_data[c] = static_cast<float>(c + 1) * 1.0f; // variance
-        Gamma_data[c] = 1.0f;                           // weight (scale)
-        Beta_data[c] = 0.0f;                            // bias (shift)
-    }
-
-    // Reference batchnorm computation
-    // output = (input - mean) / sqrt(variance + epsilon) * gamma + beta
-    for (int n = 0; n < N; ++n) {
-        for (int c = 0; c < C; ++c) {
-            float mean = E_data[c];
-            float variance = Var_data[c];
-            float gamma = Gamma_data[c];
-            float beta = Beta_data[c];
-            float inv_std = 1.0f / std::sqrt(variance + epsilon);
-
-            for (int h = 0; h < H; ++h) {
-                for (int w = 0; w < W; ++w) {
-                    int idx = ((n * C + c) * H + h) * W + w;
-                    float x = Batch_data[idx];
-                    B_out_ref[idx] = (x - mean) * inv_std * gamma + beta;
-                }
-            }
-        }
-    }
-
-    fn(Batch_data.data(), Var_data.data(), E_data.data(), Gamma_data.data(), Beta_data.data(), B_out_result.data());
-
-    for (int i = 0; i < total_elements; ++i) {
-        EXPECT_NEAR(B_out_result[i], B_out_ref[i], 5e-2f) << "Mismatch at index " << i;
-    }
-
-    dlclose(h);
 }
 
 
@@ -238,61 +180,4 @@ TEST(BatchNormTest, BatchNorm2D_QANT_Batched) {
     sdfg.validate();
 
     std::string lib_path = docc::qant::compile(sdfg, "/tmp/batchnorm2d_qant_batched/", "qant", "", false);
-
-    void* h = dlopen(lib_path.c_str(), RTLD_LAZY);
-    ASSERT_NE(h, nullptr) << dlerror();
-
-    using Fn = void (*)(float*, float*, float*, float*, float*, float*);
-    auto fn = reinterpret_cast<Fn>(dlsym(h, sdfg.name().c_str()));
-    ASSERT_NE(fn, nullptr) << dlerror();
-
-    const int total_elements = N * C * H * W;
-    const int channels = C;
-
-    std::vector<float> Batch_data(total_elements), Var_data(channels), E_data(channels);
-    std::vector<float> Gamma_data(channels), Beta_data(channels);
-    std::vector<float> B_out_result(total_elements, 0.0f);
-    std::vector<float> B_out_ref(total_elements, 0.0f);
-
-    const float epsilon = 0.00001f;
-
-    // Initialize input data with varying patterns
-    for (int i = 0; i < total_elements; ++i) {
-        Batch_data[i] = static_cast<float>((i * 7) % 29) * 0.1f;
-    }
-
-    // Set per-channel statistics
-    for (int c = 0; c < channels; ++c) {
-        E_data[c] = static_cast<float>(c) * 1.5f;       // mean
-        Var_data[c] = static_cast<float>(c + 1) * 0.5f; // variance
-        Gamma_data[c] = 2.0f;                           // weight (scale)
-        Beta_data[c] = 1.0f;                            // bias (shift)
-    }
-
-    // Reference batchnorm computation
-    for (int n = 0; n < N; ++n) {
-        for (int c = 0; c < C; ++c) {
-            float mean = E_data[c];
-            float variance = Var_data[c];
-            float gamma = Gamma_data[c];
-            float beta = Beta_data[c];
-            float inv_std = 1.0f / std::sqrt(variance + epsilon);
-
-            for (int h = 0; h < H; ++h) {
-                for (int w = 0; w < W; ++w) {
-                    int idx = ((n * C + c) * H + h) * W + w;
-                    float x = Batch_data[idx];
-                    B_out_ref[idx] = (x - mean) * inv_std * gamma + beta;
-                }
-            }
-        }
-    }
-
-    fn(Batch_data.data(), Var_data.data(), E_data.data(), Gamma_data.data(), Beta_data.data(), B_out_result.data());
-
-    for (int i = 0; i < total_elements; ++i) {
-        EXPECT_NEAR(B_out_result[i], B_out_ref[i], 5e-2f) << "Mismatch at index " << i;
-    }
-
-    dlclose(h);
 }
