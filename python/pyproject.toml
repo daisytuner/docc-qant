@@ -31,11 +31,11 @@ classifiers = [
 ]
 
 dependencies = [
-  "docc-compiler==0.0.7",
+  "docc-compiler==0.0.8",
 ]
 
 [project.optional-dependencies]
-ai = ["docc-ai==0.0.7"]
+ai = ["docc-ai==0.0.8"]
 
 [project.urls]
 Homepage = "https://daisytuner.com"
@@ -74,7 +74,7 @@ test-requires = ["numpy", "pytest", "scipy"]
 [[tool.cibuildwheel.overrides]]
 # Only install AI extra on Python 3.12
 select = "cp312-*"
-test-requires = ["numpy", "pytest", "scipy", "docc-ai==0.0.7"]
+test-requires = ["numpy", "pytest", "scipy", "docc-ai==0.0.8"]
 
 [tool.cibuildwheel.linux]
 before-all = [
