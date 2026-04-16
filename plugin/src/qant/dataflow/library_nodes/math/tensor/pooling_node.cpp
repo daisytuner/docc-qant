@@ -97,6 +97,25 @@ symbolic::Expression QantPoolingNode::flop() const {
     }
 }
 
+std::unique_ptr<data_flow::DataFlowNode> QantPoolingNode::
+    clone(size_t element_id, const graph::Vertex vertex, data_flow::DataFlowGraph& parent) const {
+    auto node = std::unique_ptr<QantPoolingNode>(new QantPoolingNode(
+        element_id,
+        this->debug_info(),
+        vertex,
+        parent,
+        quantization_,
+        mode_,
+        shape_,
+        kernel_shape_,
+        strides_,
+        pads_,
+        dilations_
+    ));
+    node->implementation_type() = this->implementation_type();
+    return node;
+}
+
 nlohmann::json QantPoolingNodeSerializer::serialize(const data_flow::LibraryNode& library_node) {
     const QantPoolingNode& node = static_cast<const QantPoolingNode&>(library_node);
     nlohmann::json j;

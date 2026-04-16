@@ -124,6 +124,26 @@ symbolic::Expression QantConvNode::kernel_iteration_count() const {
     return symbolic::mul(symbolic::div(shape_[1], group_), kernel_volume());
 }
 
+std::unique_ptr<data_flow::DataFlowNode> QantConvNode::
+    clone(size_t element_id, const graph::Vertex vertex, data_flow::DataFlowGraph& parent) const {
+    auto node = std::unique_ptr<QantConvNode>(new QantConvNode(
+        element_id,
+        this->debug_info(),
+        vertex,
+        parent,
+        quantization_,
+        shape_,
+        kernel_shape_,
+        strides_,
+        pads_,
+        dilations_,
+        output_channels_,
+        group_
+    ));
+    node->implementation_type() = this->implementation_type();
+    return node;
+}
+
 nlohmann::json QantConvNodeSerializer::serialize(const data_flow::LibraryNode& library_node) {
     const QantConvNode& conv_node = static_cast<const QantConvNode&>(library_node);
     nlohmann::json j;

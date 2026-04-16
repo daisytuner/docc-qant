@@ -59,9 +59,10 @@ symbolic::Expression QantReLUNode::flop() const {
 
 std::unique_ptr<data_flow::DataFlowNode> QantReLUNode::
     clone(size_t element_id, const graph::Vertex vertex, data_flow::DataFlowGraph& parent) const {
-    return std::unique_ptr<data_flow::DataFlowNode>(
-        new QantReLUNode(element_id, this->debug_info(), vertex, parent, quantization_, this->shape())
-    );
+    auto node = std::unique_ptr<
+        QantReLUNode>(new QantReLUNode(element_id, this->debug_info(), vertex, parent, quantization_, this->shape()));
+    node->implementation_type() = this->implementation_type();
+    return node;
 }
 
 
