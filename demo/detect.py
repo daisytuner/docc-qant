@@ -50,11 +50,15 @@ if __name__ == "__main__":
     fourcc = cv2.VideoWriter_fourcc(*'mp4v')  # or 'XVID' for .avi
     out = cv2.VideoWriter(str(FRAMES_DIR / "output.mp4"), fourcc, fps, (width, height))
 
-    i = 3
+    i = 0
     while True:
         ret, frame = cap.read()
         if not ret:
             break
+
+        i += 1
+        if i % 3 != 0:
+            continue
 
         frame_dir = FRAMES_DIR / f"{i:04d}"
         frame_dir.mkdir(exist_ok=True)
@@ -87,8 +91,6 @@ if __name__ == "__main__":
         cv2.imshow('Detections', frame)
         if cv2.waitKey(1) & 0xFF == ord('q'):
             break
-
-        i = i + 1
 
 cap.release()
 out.release()
