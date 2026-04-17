@@ -1,11 +1,12 @@
-name: Unit Tests
+name: Nightly Tests (docc main)
 
 on:
-  pull_request:
-    types: [opened, reopened, synchronize, ready_for_review]
+  schedule:
+    - cron: '0 2 * * *'
+  workflow_dispatch:
 
 jobs:
-  cpp-tests-linux:
+  cpp-tests-linux-docc-main:
     if: github.repository_owner == 'daisytuner'
     runs-on:
       group: dahlia
@@ -25,11 +26,11 @@ jobs:
       - name: Fetch LFS files
         run: git lfs pull
 
-      - name: Formatting
-        shell: bash
+      - name: Update docc to main
         run: |
-          shopt -s globstar
-          clang-format-19 -style=file --dry-run --Werror plugin/include/**/*.h plugin/src/**/*.cpp plugin/tests/**/*.cpp
+          cd 3rdParty/docc
+          git fetch origin main
+          git checkout origin/main
 
       - name: Install Dependencies
         run: |
@@ -52,7 +53,6 @@ jobs:
             -DCMAKE_CXX_COMPILER=clang++-19 \
             -DCMAKE_INSTALL_PREFIX=/usr/local \
             -DCMAKE_BUILD_TYPE=Debug \
-            -DDOCC_QANT_ENABLE_COVERAGE=ON \
             -DBUILD_TESTS:BOOL=OFF \
             -DBUILD_BENCHMARKS:BOOL=OFF \
             -DBUILD_BENCHMARKS_GOOGLE:BOOL=OFF  \
@@ -62,7 +62,7 @@ jobs:
 
           ./plugin/tests/docc-qant-plugin_test
 
-  python-tests-linux:
+  python-tests-linux-docc-main:
     if: github.repository_owner == 'daisytuner'
     runs-on:
       group: dahlia
@@ -87,6 +87,12 @@ jobs:
 
       - name: Fetch LFS files
         run: git lfs pull
+
+      - name: Update docc to main
+        run: |
+          cd 3rdParty/docc
+          git fetch origin main
+          git checkout origin/main
 
       - name: Set up Python ${{ matrix.python-version }}
         uses: actions/setup-python@v5
@@ -113,13 +119,6 @@ jobs:
           cd dlpack-1.2
           cp -r include/dlpack /usr/local/include/
 
-      - name: Formatting
-        shell: bash
-        run: |
-          shopt -s globstar
-          clang-format-19 -style=file --dry-run --Werror python/bindings/**/*.cpp
-          black --check python/docc/ python/tests/
-
       - name: Build
         run: |
           pip install --no-build-isolation -v -e 3rdParty/docc/python/
@@ -132,9 +131,8 @@ jobs:
           coverage xml
 
       - name: MLIR Tests
-        if: matrix.python-version == '3.11' || matrix.python-version == '3.12' # torch-mlir release is not yet supported on newer versions
+        if: matrix.python-version == '3.11' || matrix.python-version == '3.12'
         run: |
-          # Install torch-mlir
           pip install torch==2.10.0+cpu torchvision==0.25.0+cpu --extra-index-url https://download.pytorch.org/whl/cpu
           pip install torch-mlir==20260309.746 -f https://github.com/llvm/torch-mlir-release/releases/expanded_assets/dev-wheels
 
