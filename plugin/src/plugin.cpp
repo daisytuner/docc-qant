@@ -35,7 +35,7 @@
 #include "sdfg/data_flow/library_nodes/math/tensor/batchnorm_node.h"
 #include "sdfg/visualizer/dot_visualizer.h"
 
-#include <docc/compile/file_compiler.h>
+#include <docc/compile/src_file_compiler_builder.h>
 #include <docc/target/docc_target.h>
 
 sdfg::plugins::Plugin register_docc_plugin() {

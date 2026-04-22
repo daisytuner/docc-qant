@@ -5,7 +5,8 @@
 #include <sdfg/plugins/plugins.h>
 #include <sdfg/serializer/json_serializer.h>
 
-#include "docc/compile/file_compiler.h"
+#include "docc/compile/src_file_compiler.h"
+#include "docc/compile/src_file_compiler_builder.h"
 #include "docc/target/docc_target.h"
 #include "sdfg/codegen/code_generators/cpp_code_generator.h"
 #include "sdfg/visualizer/dot_visualizer.h"
