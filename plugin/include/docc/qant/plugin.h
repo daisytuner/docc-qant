@@ -13,7 +13,7 @@ void register_plugin(sdfg::plugins::Context& context);
 
 void schedule(sdfg::StructuredSDFG& sdfg, const std::string& category);
 
-std::string compile(
+void before_compile_hook(
     sdfg::StructuredSDFG& sdfg,
     const std::string& output_folder,
     const std::string& target,
