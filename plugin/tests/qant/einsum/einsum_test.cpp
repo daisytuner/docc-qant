@@ -176,7 +176,7 @@ TEST(EinsumTest, Matmul_2D_BFloat16) {
     sdfg.validate();
 
     // Compile the SDFG and test execution
-    std::string lib_path = docc::qant::compile(sdfg, "/tmp/einsum_2d/", "qant", "", false);
+    std::string lib_path = docc::qant::so_compile(sdfg);
 
     void* h = dlopen(lib_path.c_str(), RTLD_LAZY);
     ASSERT_NE(h, nullptr) << dlerror();
@@ -291,7 +291,7 @@ TEST(EinsumTest, Transpose_BFloat16) {
     sdfg.validate();
 
     // Compile the SDFG and test execution
-    std::string lib_path = docc::qant::compile(sdfg, "/tmp/einsum_transpose/", "qant", "", false);
+    std::string lib_path = docc::qant::so_compile(sdfg);
 
     void* h = dlopen(lib_path.c_str(), RTLD_LAZY);
     ASSERT_NE(h, nullptr) << dlerror();
@@ -491,7 +491,7 @@ TEST(EinsumTest, GEMM_3D_Batched_BFloat16) {
     sdfg.validate();
 
     // Compile the SDFG and test execution
-    std::string lib_path = docc::qant::compile(sdfg, "/tmp/einsum_batched_3d/", "qant", "", false);
+    std::string lib_path = docc::qant::so_compile(sdfg);
 
     void* h = dlopen(lib_path.c_str(), RTLD_LAZY);
     ASSERT_NE(h, nullptr) << dlerror();

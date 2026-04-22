@@ -108,7 +108,7 @@ TEST(MatMulTest, MatMul_2D_SimpleMatrix) {
 
     sdfg.validate();
 
-    std::string lib_path = docc::qant::compile(sdfg, "/tmp/matmul_2d_direct/", "qant", "", false);
+    std::string lib_path = docc::qant::so_compile(sdfg);
 
     void* h = dlopen(lib_path.c_str(), RTLD_LAZY);
     ASSERT_NE(h, nullptr) << dlerror();
@@ -220,7 +220,7 @@ TEST(MatMulTest, MatMul_3D_Batched) {
 
     sdfg.validate();
 
-    std::string lib_path = docc::qant::compile(sdfg, "/tmp/matmul_3d_direct/", "qant", "", false);
+    std::string lib_path = docc::qant::so_compile(sdfg);
 
     void* h = dlopen(lib_path.c_str(), RTLD_LAZY);
     ASSERT_NE(h, nullptr) << dlerror();

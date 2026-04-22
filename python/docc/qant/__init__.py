@@ -4,7 +4,6 @@ from typing import Callable, Optional, Dict, Any
 from ._qant import (
     register_plugin_qant,
     schedule_qant,
-    compile_qant,
     expand_qant,
     qant_compile_hook,
 )

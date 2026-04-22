@@ -11,6 +11,8 @@ namespace qant {
 
 void register_plugin(sdfg::plugins::Context& context);
 
+extern docc::target::DoccTarget qant_target;
+
 void schedule(sdfg::StructuredSDFG& sdfg, const std::string& category);
 
 void before_compile_hook(

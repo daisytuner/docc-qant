@@ -51,7 +51,7 @@ sdfg::plugins::Plugin register_docc_plugin() {
 namespace docc {
 namespace qant {
 
-static docc::target::DoccTarget qant_target{
+docc::target::DoccTarget qant_target{
     .short_name = "qant",
     .apply_additional_compile_options = [](compile::SrcFileCompilerBuilder& builder) -> bool {
         builder.set_compiler("g++");
