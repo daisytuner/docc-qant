@@ -53,6 +53,9 @@ public:
     symbolic::Expression kernel_iteration_count() const;
 
     symbolic::Expression flop() const override;
+
+    std::unique_ptr<data_flow::DataFlowNode>
+    clone(size_t element_id, const graph::Vertex vertex, data_flow::DataFlowGraph& parent) const override;
 };
 
 class QantConvNodeSerializer : public serializer::LibraryNodeSerializer {

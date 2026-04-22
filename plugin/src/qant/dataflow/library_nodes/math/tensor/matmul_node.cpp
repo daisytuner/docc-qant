@@ -139,6 +139,15 @@ const TensorLayout& QantMatMulNode::layout_a() const { return layout_a_; }
 const TensorLayout& QantMatMulNode::layout_b() const { return layout_b_; }
 
 
+std::unique_ptr<data_flow::DataFlowNode> QantMatMulNode::
+    clone(size_t element_id, const graph::Vertex vertex, data_flow::DataFlowGraph& parent) const {
+    auto node = std::unique_ptr<QantMatMulNode>(
+        new QantMatMulNode(element_id, this->debug_info(), vertex, parent, quantization_, layout_a_, layout_b_)
+    );
+    node->implementation_type() = this->implementation_type();
+    return node;
+}
+
 nlohmann::json QantMatMulNodeSerializer::serialize(const data_flow::LibraryNode& library_node) {
     const QantMatMulNode& matmul_node = static_cast<const QantMatMulNode&>(library_node);
     nlohmann::json j;
