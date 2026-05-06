@@ -17,6 +17,7 @@ set(TEST_FILES
     qant/tensor/pooling_test.cpp
     qant/tensor/relu_test.cpp
     qant/tensor/sigmoid_test.cpp
+    so_compile.cpp
     test.cpp
 )
 

@@ -11,6 +11,7 @@
 #include "sdfg/data_flow/library_nodes/math/tensor/batchnorm_node.h"
 #include "sdfg/passes/pipeline.h"
 #include "sdfg_debug_dump.h"
+#include "so_compile.h"
 
 #include "docc/qant/passes/remapping_pass.h"
 #include "docc/qant/plugin.h"

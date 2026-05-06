@@ -28,6 +28,7 @@
 #include "sdfg/types/scalar.h"
 #include "sdfg/types/type.h"
 #include "sdfg_debug_dump.h"
+#include "so_compile.h"
 
 #include "docc/qant/plugin.h"
 #include "docc/qant/qant.h"
