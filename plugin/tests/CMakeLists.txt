@@ -17,6 +17,7 @@ set(TEST_FILES
     qant/tensor/pooling_test.cpp
     qant/tensor/relu_test.cpp
     qant/tensor/sigmoid_test.cpp
+    so_compile.cpp
     test.cpp
 )
 
@@ -24,6 +25,15 @@ set(TEST_FILES
 add_executable(docc-qant-plugin_test ${TEST_FILES})
 target_link_libraries(docc-qant-plugin_test gtest_main docc-qant-plugin)
 target_include_directories(docc-qant-plugin_test PRIVATE ${CMAKE_CURRENT_SOURCE_DIR})
+get_filename_component(DOCC_PATHS_BIN ${CMAKE_CURRENT_BINARY_DIR}/../../3rdParty/docc ABSOLUTE)
+get_filename_component(DOCC_PATHS_SRC ${CMAKE_CURRENT_SOURCE_DIR}/../../3rdParty/docc ABSOLUTE)
+
+
+target_compile_definitions(docc-qant-plugin_test PRIVATE
+    DOCC_PATHS_BIN="${DOCC_PATHS_BIN}"
+    DOCC_PATHS_SRC="${DOCC_PATHS_SRC}"
+)
+
 
 if(DOCC_TESTS_ENABLE_DUMP)
     target_compile_definitions(docc-qant-plugin_test PRIVATE

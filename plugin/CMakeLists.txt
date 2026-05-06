@@ -65,8 +65,9 @@ endif()
 
 target_link_libraries(docc-qant-plugin
     PUBLIC
-        sdfg::sdfg
-        sdfg::opt
+        docc::core
+        docc::opt
+        docc::c-compile
         ${CMAKE_DL_LIBS}
 )
 set_target_properties(docc-qant-plugin PROPERTIES

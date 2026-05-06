@@ -90,5 +90,5 @@ TEST(GEMMTest, GEMM_2D_BFloat16) {
 
     sdfg.validate();
 
-    EXPECT_NO_THROW(std::string lib_path = docc::qant::compile(sdfg, "/tmp/gemm_bf16_2d/", "qant", "", false););
+    EXPECT_NO_THROW(std::string lib_path = docc::qant::so_compile(sdfg);
 }

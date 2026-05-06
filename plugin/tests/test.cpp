@@ -4,18 +4,19 @@
 #include <sdfg/codegen/dispatchers/node_dispatcher_registry.h>
 #include <sdfg/plugins/plugins.h>
 #include <sdfg/serializer/json_serializer.h>
+#include <sdfg/visualizer/dot_visualizer.h>
 
-#include "sdfg/visualizer/dot_visualizer.h"
+#include "sdfg_debug_dump.h"
+#include "so_compile.h"
 
-static std::optional<std::filesystem::path> test_output_dir;
+std::optional<std::filesystem::path> test_output_dir;
 
 int main(int argc, char** argv) {
     testing::InitGoogleTest(&argc, argv);
     sdfg::codegen::register_default_dispatchers();
     sdfg::serializer::register_default_serializers();
 
-    sdfg::plugins::Context context = sdfg::plugins::Context::global_context();
-    docc::qant::register_plugin(context);
+    docc::qant::register_plugin(docc::qant::docc_context);
 
 #ifdef DOCC_TESTS_ENABLE_DUMP
     test_output_dir = std::filesystem::current_path() / "test_outputs";

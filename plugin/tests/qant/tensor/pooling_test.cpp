@@ -4,10 +4,13 @@
 #include <vector>
 
 #include <sdfg/passes/dataflow/tensor_to_pointer_conversion.h>
+
 #include "sdfg/analysis/analysis.h"
 #include "sdfg/builder/structured_sdfg_builder.h"
 #include "sdfg/data_flow/library_nodes/math/tensor/pooling_node.h"
 #include "sdfg/passes/pipeline.h"
+#include "sdfg_debug_dump.h"
+#include "so_compile.h"
 
 #include "docc/qant/dataflow/library_nodes/math/tensor/pooling_node.h"
 #include "docc/qant/passes/remapping_pass.h"
@@ -93,7 +96,7 @@ TEST(PoolingTest, MaxPool2D_QANT_Simple) {
 
     sdfg.validate();
 
-    std::string lib_path = docc::qant::compile(sdfg, "/tmp/maxpool2d_qant_simple/", "qant", "", false);
+    std::string lib_path = docc::qant::so_compile(sdfg);
 
     void* h = dlopen(lib_path.c_str(), RTLD_LAZY);
     ASSERT_NE(h, nullptr) << dlerror();
@@ -216,7 +219,7 @@ TEST(PoolingTest, AvgPool2D_QANT_Simple) {
 
     sdfg.validate();
 
-    std::string lib_path = docc::qant::compile(sdfg, "/tmp/avgpool2d_qant_simple/", "qant", "", false);
+    std::string lib_path = docc::qant::so_compile(sdfg);
 
     void* h = dlopen(lib_path.c_str(), RTLD_LAZY);
     ASSERT_NE(h, nullptr) << dlerror();
@@ -331,7 +334,7 @@ TEST(PoolingTest, MaxPool2D_QANT_Batched) {
 
     sdfg.validate();
 
-    std::string lib_path = docc::qant::compile(sdfg, "/tmp/maxpool2d_qant_batched/", "qant", "", false);
+    std::string lib_path = docc::qant::so_compile(sdfg);
 
     void* h = dlopen(lib_path.c_str(), RTLD_LAZY);
     ASSERT_NE(h, nullptr) << dlerror();
@@ -447,7 +450,7 @@ TEST(PoolingTest, AvgPool2D_QANT_Batched) {
 
     sdfg.validate();
 
-    std::string lib_path = docc::qant::compile(sdfg, "/tmp/avgpool2d_qant_batched/", "qant", "", false);
+    std::string lib_path = docc::qant::so_compile(sdfg);
 
     void* h = dlopen(lib_path.c_str(), RTLD_LAZY);
     ASSERT_NE(h, nullptr) << dlerror();

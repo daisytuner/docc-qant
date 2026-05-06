@@ -5,10 +5,13 @@
 #include <vector>
 
 #include <sdfg/passes/dataflow/tensor_to_pointer_conversion.h>
+
 #include "sdfg/analysis/analysis.h"
 #include "sdfg/builder/structured_sdfg_builder.h"
 #include "sdfg/data_flow/library_nodes/math/tensor/batchnorm_node.h"
 #include "sdfg/passes/pipeline.h"
+#include "sdfg_debug_dump.h"
+#include "so_compile.h"
 
 #include "docc/qant/passes/remapping_pass.h"
 #include "docc/qant/plugin.h"
@@ -96,7 +99,7 @@ TEST(BatchNormTest, BatchNorm2D_QANT_Simple) {
 
     sdfg.validate();
 
-    std::string lib_path = docc::qant::compile(sdfg, "/tmp/batchnorm2d_qant_simple/", "qant", "", false);
+    std::string lib_path = docc::qant::so_compile(sdfg);
 }
 
 
@@ -179,5 +182,5 @@ TEST(BatchNormTest, BatchNorm2D_QANT_Batched) {
 
     sdfg.validate();
 
-    std::string lib_path = docc::qant::compile(sdfg, "/tmp/batchnorm2d_qant_batched/", "qant", "", false);
+    std::string lib_path = docc::qant::so_compile(sdfg);
 }

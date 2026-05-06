@@ -11,6 +11,7 @@
 #include "sdfg/data_flow/library_nodes/math/tensor/matmul_node.h"
 #include "sdfg/passes/pipeline.h"
 #include "sdfg_debug_dump.h"
+#include "so_compile.h"
 
 #include "docc/qant/dataflow/library_nodes/math/tensor/matmul_node.h"
 #include "docc/qant/passes/remapping_pass.h"
@@ -108,7 +109,7 @@ TEST(MatMulTest, MatMul_2D_SimpleMatrix) {
 
     sdfg.validate();
 
-    std::string lib_path = docc::qant::compile(sdfg, "/tmp/matmul_2d_direct/", "qant", "", false);
+    std::string lib_path = docc::qant::so_compile(sdfg);
 
     void* h = dlopen(lib_path.c_str(), RTLD_LAZY);
     ASSERT_NE(h, nullptr) << dlerror();
@@ -220,7 +221,7 @@ TEST(MatMulTest, MatMul_3D_Batched) {
 
     sdfg.validate();
 
-    std::string lib_path = docc::qant::compile(sdfg, "/tmp/matmul_3d_direct/", "qant", "", false);
+    std::string lib_path = docc::qant::so_compile(sdfg);
 
     void* h = dlopen(lib_path.c_str(), RTLD_LAZY);
     ASSERT_NE(h, nullptr) << dlerror();

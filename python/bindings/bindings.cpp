@@ -55,20 +55,20 @@ PYBIND11_MODULE(_qant, m) {
     );
 
     m.def(
-        "compile_qant",
+        "qant_compile_hook",
         [](uintptr_t sdfg_ptr,
            const std::string& output_folder,
            const std::string& target,
            const std::string& instrumentation_mode,
            bool capture_args) {
             auto* sdfg = reinterpret_cast<sdfg::StructuredSDFG*>(sdfg_ptr);
-            return docc::qant::compile(*sdfg, output_folder, target, instrumentation_mode, capture_args);
+            return docc::qant::before_compile_hook(*sdfg, output_folder, target, instrumentation_mode, capture_args);
         },
         py::arg("sdfg_ptr"),
         py::arg("output_folder"),
         py::arg("target"),
         py::arg("instrumentation_mode"),
         py::arg("capture_args"),
-        "Compile an SDFG for Q.ANT target. Takes native pointer to StructuredSDFG."
+        "Get the final SDFG directly before compiling for last-minute changes or analysis"
     );
 }

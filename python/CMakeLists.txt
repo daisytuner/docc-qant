@@ -22,3 +22,10 @@ target_include_directories(_qant PRIVATE
 
 # Install artifacts for the Python wheel
 install(TARGETS _qant DESTINATION docc/qant COMPONENT docc_qant)
+
+add_custom_command(TARGET _qant POST_BUILD
+    COMMAND ${CMAKE_COMMAND} -E create_symlink
+    "$<TARGET_FILE:_qant>"
+    "${CMAKE_CURRENT_SOURCE_DIR}/docc/qant/$<TARGET_FILE_NAME:_qant>"
+    COMMENT "Creating symlink to docc.qant._qant in src dir"
+)

@@ -12,6 +12,7 @@
 #include "sdfg/data_flow/library_nodes/math/tensor/elementwise_ops/relu_node.h"
 #include "sdfg/passes/pipeline.h"
 #include "sdfg_debug_dump.h"
+#include "so_compile.h"
 
 #include "docc/qant/dataflow/library_nodes/math/tensor/elementwise_ops/relu_node.h"
 #include "docc/qant/passes/remapping_pass.h"
@@ -94,7 +95,7 @@ TEST(ReLUTest, ReLU_1D_Vector) {
 
     sdfg.validate();
 
-    std::string lib_path = docc::qant::compile(sdfg, "/tmp/relu_1d_direct/", "qant", "", false);
+    std::string lib_path = docc::qant::so_compile(sdfg);
 
     void* h = dlopen(lib_path.c_str(), RTLD_LAZY);
     ASSERT_NE(h, nullptr) << dlerror();
@@ -191,7 +192,7 @@ TEST(ReLUTest, ReLU_2D_Matrix) {
 
     sdfg.validate();
 
-    std::string lib_path = docc::qant::compile(sdfg, "/tmp/relu_2d_direct/", "qant", "", false);
+    std::string lib_path = docc::qant::so_compile(sdfg);
 
     void* h = dlopen(lib_path.c_str(), RTLD_LAZY);
     ASSERT_NE(h, nullptr) << dlerror();
