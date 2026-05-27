@@ -29,6 +29,7 @@
 #include <sdfg/data_flow/library_nodes/math/tensor/matmul_node.h>
 #include <sdfg/data_flow/library_nodes/math/tensor/pooling_node.h>
 #include <sdfg/passes/targets/target_mapping_pass.h>
+#include <sdfg/plugins/targets.h>
 
 #include "docc/qant/tensor/batchnorm_dispatcher.h"
 #include "docc/qant/tensor/sigmoid_dispatcher.h"
@@ -52,14 +53,25 @@ namespace docc {
 namespace qant {
 
 docc::target::DoccTarget qant_target{
+    .api_ver = docc::target::DoccTarget::NEWEST_API_VER,
     .short_name = "qant",
     .apply_additional_compile_options = [](compile::SrcFileCompilerBuilder& builder) -> bool {
         builder.set_compiler("g++");
         builder.add_compile_option("-std=c++23");
         builder.add_link_option("-lqant_native_computing_toolkit");
-
         return true;
-    }
+    },
+    .apply_expand_time_mapping = [](sdfg::builder::StructuredSDFGBuilder& builder,
+                                    sdfg::analysis::AnalysisManager& analysis_manager,
+                                    const docc::target::TargetOptions& options) -> bool {
+        // Run expansion pass
+        sdfg::passes::QantRemappingPass remapping;
+        remapping.run(builder, analysis_manager);
+
+        ReduceQuantizationPass reduceQuantizationPass;
+        reduceQuantizationPass.run_pass(builder, analysis_manager);
+        return true;
+    },
 };
 
 void register_plugin(sdfg::plugins::Context& context) {
@@ -204,17 +216,7 @@ void register_plugin(sdfg::plugins::Context& context) {
     context.add_target(&qant_target);
 };
 
-void expand(sdfg::StructuredSDFG& sdfg) {
-    sdfg::builder::StructuredSDFGBuilder builder(sdfg);
-    sdfg::analysis::AnalysisManager analysis_manager(sdfg);
-
-    // Run expansion pass
-    sdfg::passes::QantRemappingPass remapping;
-    remapping.run(builder, analysis_manager);
-
-    ReduceQuantizationPass reduceQuantizationPass;
-    reduceQuantizationPass.run_pass(builder, analysis_manager);
-}
+void expand(sdfg::StructuredSDFG& sdfg) {}
 
 void schedule(sdfg::StructuredSDFG& sdfg, const std::string& category) {
     sdfg::builder::StructuredSDFGBuilder builder(sdfg);
