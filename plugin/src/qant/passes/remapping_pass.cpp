@@ -158,8 +158,8 @@ bool QantRemapping::accept(structured_control_flow::Block& node) {
                     report_->transform_impossible("QantBatchnorm", "not 2d or float");
                 }
             }
-        } else if (library_node->code() == sdfg::einsum::LibraryNodeType_Einsum.value()) {
-            auto* einsum_node = dynamic_cast<sdfg::einsum::EinsumNode*>(library_node);
+        } else if (library_node->code() == sdfg::math::tensor::LibraryNodeType_Einsum.value()) {
+            auto* einsum_node = dynamic_cast<sdfg::math::tensor::EinsumNode*>(library_node);
             sdfg::transformations::Einsum2QantMatmul transformation(*einsum_node, "qant");
             if (transformation.can_be_applied(builder_, analysis_manager_)) {
                 transformation.apply(builder_, analysis_manager_);
