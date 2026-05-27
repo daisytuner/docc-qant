@@ -9,8 +9,6 @@ from docc.qant import register_docc_plugin
 
 register_docc_plugin()
 
-docc.torch.set_backend_options(target="qant", category="server")
-
 
 def test_linear_regression_mse():
     """Verify gradient descent learns a known linear function."""
@@ -28,7 +26,9 @@ def test_linear_regression_mse():
     torch.manual_seed(42)
     model = LinearNet()
 
-    program = torch.compile(model, backend="docc")
+    program = torch.compile(
+        model, backend="docc", options={"target": "qant", "category": "server"}
+    )
     optimizer = torch.optim.SGD(program.parameters(), lr=0.5)
     criterion = nn.MSELoss()
 

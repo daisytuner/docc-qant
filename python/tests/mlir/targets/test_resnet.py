@@ -11,8 +11,6 @@ from docc.qant import register_docc_plugin
 
 register_docc_plugin()
 
-docc.torch.set_backend_options(target="qant", category="server")
-
 
 @pytest.mark.skipif(not os.environ.get("SLOW_TESTS", ""), reason="slow test")
 def test_resnet18():
@@ -32,7 +30,9 @@ def test_resnet18():
     example_input = torch.randn(1, 3, 224, 224)
 
     start = time.perf_counter()
-    program = torch.compile(model, backend="docc")
+    program = torch.compile(
+        model, backend="docc", options={"target": "qant", "category": "server"}
+    )
     docc_compile_time = time.perf_counter() - start
     print(f"Docc compile: {docc_compile_time:.4f} s")
 

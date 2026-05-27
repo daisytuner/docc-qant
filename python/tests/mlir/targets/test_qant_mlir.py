@@ -9,8 +9,6 @@ from docc.qant import register_docc_plugin
 
 register_docc_plugin()
 
-docc.torch.set_backend_options(target="qant", category="server")
-
 
 def test_inference_fp32():
     class LinearNet(nn.Module):
@@ -27,7 +25,9 @@ def test_inference_fp32():
     model_ref.eval()
     model_ref.load_state_dict(model.state_dict())
 
-    program = torch.compile(model, backend="docc")
+    program = torch.compile(
+        model, backend="docc", options={"target": "qant", "category": "server"}
+    )
 
     example_input = torch.randn(2, 4)
 
@@ -57,7 +57,9 @@ def test_chained_linear_fp32():
     model_ref.eval()
     model_ref.load_state_dict(model.state_dict())
 
-    program = torch.compile(model, backend="docc")
+    program = torch.compile(
+        model, backend="docc", options={"target": "qant", "category": "server"}
+    )
 
     example_input = torch.randn(2, 4)
 
@@ -88,7 +90,9 @@ def test_inference_bf16():
     model_ref.eval()
     model_ref.load_state_dict(model.state_dict())
 
-    program = torch.compile(model, backend="docc")
+    program = torch.compile(
+        model, backend="docc", options={"target": "qant", "category": "server"}
+    )
 
     example_input = torch.randn(2, 4, dtype=torch.bfloat16)
 
@@ -115,7 +119,9 @@ def test_single_nobias_compile():
     model_ref.load_state_dict(model.state_dict())
     example_input = torch.randn(1, 3, 32, 32)
 
-    program = torch.compile(model, backend="docc")
+    program = torch.compile(
+        model, backend="docc", options={"target": "qant", "category": "server"}
+    )
     with torch.no_grad():
         res = program(example_input)
         res_ref = model_ref(example_input)
@@ -137,7 +143,9 @@ def test_maxpool2d_compile():
     model_ref.eval()
     example_input = torch.randn(1, 1, 4, 4)
 
-    program = torch.compile(model, backend="docc")
+    program = torch.compile(
+        model, backend="docc", options={"target": "qant", "category": "server"}
+    )
     with torch.no_grad():
         res = program(example_input)
         res_ref = model_ref(example_input)
@@ -159,7 +167,9 @@ def test_maxpool2d_batched_compile():
     model_ref.eval()
     example_input = torch.randn(4, 2, 6, 6)
 
-    program = torch.compile(model, backend="docc")
+    program = torch.compile(
+        model, backend="docc", options={"target": "qant", "category": "server"}
+    )
     with torch.no_grad():
         res = program(example_input)
         res_ref = model_ref(example_input)
@@ -182,7 +192,9 @@ def test_avgpool2d_compile():
     model_ref.eval()
     example_input = torch.randn(1, 1, 4, 4)
 
-    program = torch.compile(model, backend="docc")
+    program = torch.compile(
+        model, backend="docc", options={"target": "qant", "category": "server"}
+    )
     with torch.no_grad():
         res = program(example_input)
         res_ref = model_ref(example_input)
@@ -204,7 +216,9 @@ def test_avgpool2d_batched_compile():
     model_ref.eval()
     example_input = torch.randn(4, 2, 6, 6)
 
-    program = torch.compile(model, backend="docc")
+    program = torch.compile(
+        model, backend="docc", options={"target": "qant", "category": "server"}
+    )
     with torch.no_grad():
         res = program(example_input)
         res_ref = model_ref(example_input)
@@ -232,7 +246,9 @@ def test_relu2d():
         ]
     )
 
-    program = torch.compile(model, backend="docc")
+    program = torch.compile(
+        model, backend="docc", options={"target": "qant", "category": "server"}
+    )
     with torch.no_grad():
         res = program(example_input)
 
@@ -279,7 +295,9 @@ def test_batchnorm2d():
         ]
     )
 
-    program = torch.compile(model, backend="docc")
+    program = torch.compile(
+        model, backend="docc", options={"target": "qant", "category": "server"}
+    )
     with torch.no_grad():
         res = program(example_input)
         ref = model_ref(example_input)
