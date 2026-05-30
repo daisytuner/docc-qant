@@ -11,8 +11,6 @@ from docc.qant import register_docc_plugin
 
 register_docc_plugin()
 
-docc.torch.set_backend_options(target="qant", category="server")
-
 # Imagenette local index → ImageNet-1K class index mapping.
 # Imagenette is a 10-class subset of ImageNet. These are the well-known
 # ImageNet-1K indices for the 10 Imagenette synsets (sorted by wnid).
@@ -102,7 +100,9 @@ def test_resnet18_imagenet_classification_correlation():
     # DOCC-compiled model (bf16 on accelerator)
     model = models.resnet18(weights=weights)
     model.eval()
-    program = torch.compile(model, backend="docc")
+    program = torch.compile(
+        model, backend="docc", options={"target": "qant", "category": "server"}
+    )
 
     preprocess = weights.transforms()
     dataset = _imagenette_dataset(preprocess)

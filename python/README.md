@@ -13,7 +13,7 @@ For PyTorch / MLIR support (Python 3.11 and 3.12 only):
 ```bash
 pip install docc-qant[ai]
 pip install torch==2.10.0+cpu torchvision==0.25.0+cpu --extra-index-url https://download.pytorch.org/whl/cpu
-pip install torch-mlir==20260309.746 -f https://github.com/llvm/torch-mlir-release/releases/expanded_assets/dev-wheels
+pip install torch-mlir==20260512.810 -f https://github.com/llvm/torch-mlir-release/releases/expanded_assets/dev-wheels
 ```
 
 ### System Requirements

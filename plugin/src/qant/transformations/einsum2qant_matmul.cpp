@@ -14,7 +14,6 @@
 #include "sdfg/builder/structured_sdfg_builder.h"
 #include "sdfg/data_flow/library_node.h"
 #include "sdfg/data_flow/library_nodes/math/tensor/tensor_layout.h"
-#include "sdfg/einsum/einsum.h"
 #include "sdfg/symbolic/symbolic.h"
 #include "sdfg/transformations/transformation.h"
 #include "sdfg/types/pointer.h"
@@ -43,7 +42,7 @@ bool Einsum2QantMatmul::
            (symbolic::eq(idx2, indvar1) || symbolic::eq(idx2, indvar2));
 }
 
-Einsum2QantMatmul::Einsum2QantMatmul(einsum::EinsumNode& einsum_node, const std::string& target_tune)
+Einsum2QantMatmul::Einsum2QantMatmul(math::tensor::EinsumNode& einsum_node, const std::string& target_tune)
     : einsum_node_(einsum_node), target_tune_(target_tune) {}
 
 std::string Einsum2QantMatmul::name() const { return "Einsum2QantMatmul"; }
@@ -396,7 +395,7 @@ Einsum2QantMatmul Einsum2QantMatmul::from_json(builder::StructuredSDFGBuilder& b
             "Element with ID " + std::to_string(einsum_node_id) + " not found"
         );
     }
-    auto* einsum_node = dynamic_cast<einsum::EinsumNode*>(einsum_node_element);
+    auto* einsum_node = dynamic_cast<math::tensor::EinsumNode*>(einsum_node_element);
     if (!einsum_node) {
         throw InvalidTransformationDescriptionException(
             "Element with ID " + std::to_string(einsum_node_id) + " is not an EinsumNode"

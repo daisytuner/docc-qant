@@ -1,5 +1,3 @@
-#include "sdfg/einsum/einsum.h"
-
 #include <dlfcn.h>
 #include <gtest/gtest.h>
 #include <nlohmann/json_fwd.hpp>
@@ -15,6 +13,7 @@
 #include "sdfg/analysis/analysis.h"
 #include "sdfg/builder/structured_sdfg_builder.h"
 #include "sdfg/data_flow/access_node.h"
+#include "sdfg/data_flow/library_nodes/math/tensor/einsum_node.h"
 #include "sdfg/data_flow/memlet.h"
 #include "sdfg/data_flow/tasklet.h"
 #include "sdfg/element.h"
@@ -23,7 +22,6 @@
 #include "sdfg/structured_control_flow/for.h"
 #include "sdfg/structured_control_flow/map.h"
 #include "sdfg/symbolic/symbolic.h"
-#include "sdfg/types/array.h"
 #include "sdfg/types/pointer.h"
 #include "sdfg/types/scalar.h"
 #include "sdfg/types/type.h"
@@ -75,9 +73,9 @@ TEST(EinsumTest, Matmul_2D_BFloat16) {
     auto n = symbolic::symbol("n");
 
     auto& libnode = builder.add_library_node<
-        einsum::EinsumNode,
+        math::tensor::EinsumNode,
         const std::vector<std::string>&,
-        const std::vector<einsum::EinsumDimension>&,
+        const std::vector<math::tensor::EinsumDimension>&,
         const data_flow::Subset&,
         const std::vector<data_flow::Subset>&>(
         block, DebugInfo(), {"_in1", "_in2"}, {{i, zero, l}, {j, zero, m}, {k, zero, n}}, {i, j}, {{i, k}, {k, j}}, false
@@ -93,7 +91,7 @@ TEST(EinsumTest, Matmul_2D_BFloat16) {
     // Validate einsum node properties
     auto library_nodes = block.dataflow().library_nodes();
     EXPECT_EQ(library_nodes.size(), 1);
-    auto* einsum_node = dynamic_cast<sdfg::einsum::EinsumNode*>(*library_nodes.begin());
+    auto* einsum_node = dynamic_cast<sdfg::math::tensor::EinsumNode*>(*library_nodes.begin());
     EXPECT_TRUE(einsum_node);
     EXPECT_EQ(einsum_node->dims().size(), 3);
     ASSERT_GE(einsum_node->dims().size(), 3);
@@ -250,9 +248,9 @@ TEST(EinsumTest, Transpose_BFloat16) {
     builder.add_container("j", desc_int);
 
     auto& libnode = builder.add_library_node<
-        einsum::EinsumNode,
+        math::tensor::EinsumNode,
         const std::vector<std::string>&,
-        const std::vector<einsum::EinsumDimension>&,
+        const std::vector<math::tensor::EinsumDimension>&,
         const data_flow::Subset&,
         const std::vector<data_flow::Subset>&>(
         block,
@@ -272,7 +270,7 @@ TEST(EinsumTest, Transpose_BFloat16) {
 
     auto library_nodes = block.dataflow().library_nodes();
     EXPECT_EQ(library_nodes.size(), 1);
-    auto* einsum_node = dynamic_cast<sdfg::einsum::EinsumNode*>(*library_nodes.begin());
+    auto* einsum_node = dynamic_cast<sdfg::math::tensor::EinsumNode*>(*library_nodes.begin());
     EXPECT_TRUE(einsum_node);
 
     sdfg::analysis::AnalysisManager analysis_manager(builder.subject());
@@ -369,9 +367,9 @@ TEST(EinsumTest, GEMM_3D_Batched_BFloat16) {
     auto K = symbolic::symbol("K"); // K = 8
 
     auto& libnode = builder.add_library_node<
-        einsum::EinsumNode,
+        math::tensor::EinsumNode,
         const std::vector<std::string>&,
-        const std::vector<einsum::EinsumDimension>&,
+        const std::vector<math::tensor::EinsumDimension>&,
         const data_flow::Subset&,
         const std::vector<data_flow::Subset>&>(
         block,
@@ -396,7 +394,7 @@ TEST(EinsumTest, GEMM_3D_Batched_BFloat16) {
     // Validate einsum node properties
     auto library_nodes = block.dataflow().library_nodes();
     EXPECT_EQ(library_nodes.size(), 1);
-    auto* einsum_node = dynamic_cast<sdfg::einsum::EinsumNode*>(*library_nodes.begin());
+    auto* einsum_node = dynamic_cast<sdfg::math::tensor::EinsumNode*>(*library_nodes.begin());
     EXPECT_TRUE(einsum_node);
     EXPECT_EQ(einsum_node->dims().size(), 4); // 4 dimensions: b, i, j, k
 

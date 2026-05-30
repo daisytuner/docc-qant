@@ -22,6 +22,9 @@ jobs:
           submodules: recursive
           lfs: true
 
+      - name: Update submodules
+        run: git submodule update --init --recursive
+
       - name: Mark GitHub Actions workdir as safe
         run: git config --global --add safe.directory "$GITHUB_WORKSPACE"
 
@@ -107,6 +110,9 @@ jobs:
         with:
           submodules: recursive
           lfs: true
+
+      - name: Update submodules
+        run: git submodule update --init --recursive
 
       - name: Mark GitHub Actions workdir as safe
         run: git config --global --add safe.directory "$GITHUB_WORKSPACE"
@@ -227,10 +233,9 @@ jobs:
           # Install MLIR/LLVM 19 development packages needed to build docc-ai
           sudo apt install -y libmlir-19-dev mlir-19-tools
 
-          # Install torch-mlir
+          # Install torch, torchvision, and torch-mlir (specific versions)
           pip install torch==2.10.0+cpu torchvision==0.25.0+cpu --extra-index-url https://download.pytorch.org/whl/cpu
-          pip install torch-mlir==20260309.746 -f https://github.com/llvm/torch-mlir-release/releases/expanded_assets/dev-wheels
-
+          pip install torch-mlir==20260512.810 -f https://github.com/llvm/torch-mlir-release/releases/expanded_assets/dev-wheels
           pip install --no-build-isolation -v -e 3rdParty/docc/mlir/
 
           export LD_LIBRARY_PATH=/usr/local/lib:$LD_LIBRARY_PATH
