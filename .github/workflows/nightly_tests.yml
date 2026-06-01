@@ -85,9 +85,6 @@ jobs:
       - name: Mark GitHub Actions workdir as safe
         run: git config --global --add safe.directory "$GITHUB_WORKSPACE"
 
-      - name: Fetch LFS files
-        run: git lfs pull
-
       - name: Update docc to main
         run: |
           cd 3rdParty/docc
