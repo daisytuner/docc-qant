@@ -22,14 +22,8 @@ jobs:
           submodules: recursive
           lfs: true
 
-      - name: Update submodules
-        run: git submodule update --init --recursive
-
       - name: Mark GitHub Actions workdir as safe
         run: git config --global --add safe.directory "$GITHUB_WORKSPACE"
-
-      - name: Fetch LFS files
-        run: git lfs pull
 
       - name: Install GCC-13 and build dependencies
         run: |
