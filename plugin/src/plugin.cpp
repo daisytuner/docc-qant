@@ -1,11 +1,5 @@
 #include "docc/qant/plugin.h"
 #include "docc/qant/blas/gemm.h"
-#include "docc/qant/dataflow/library_nodes/math/tensor/conv_node.h"
-#include "docc/qant/dataflow/library_nodes/math/tensor/elementwise_ops/qant_elementwise_base_serializer.h"
-#include "docc/qant/dataflow/library_nodes/math/tensor/elementwise_ops/relu_node.h"
-#include "docc/qant/dataflow/library_nodes/math/tensor/elementwise_ops/sigmoid_node.h"
-#include "docc/qant/dataflow/library_nodes/math/tensor/matmul_node.h"
-#include "docc/qant/dataflow/library_nodes/math/tensor/pooling_node.h"
 #include "docc/qant/passes/remapping_pass.h"
 #include "docc/qant/qant.h"
 #include "docc/qant/qant_offloaded_visitor.h"
@@ -90,7 +84,7 @@ void register_plugin(sdfg::plugins::Context& context) {
 
     // Register Q.ANT MatMul dispatcher
     context.library_node_dispatcher_registry.register_library_node_dispatcher(
-        sdfg::math::tensor::LibraryNodeType_QantMatMul.value() + "::" + docc::qant::ImplementationType_QANT.value(),
+        sdfg::math::tensor::LibraryNodeType_MatMul.value() + "::" + docc::qant::ImplementationType_QANT.value(),
         [](sdfg::codegen::LanguageExtension& language_extension,
            const sdfg::Function& function,
            const sdfg::data_flow::DataFlowGraph& data_flow_graph,
@@ -99,20 +93,16 @@ void register_plugin(sdfg::plugins::Context& context) {
                 language_extension,
                 function,
                 data_flow_graph,
-                dynamic_cast<const sdfg::math::tensor::QantMatMulNode&>(node)
+                dynamic_cast<const sdfg::math::tensor::MatMulNode&>(node)
             );
         }
     );
 
-    // Register QantMatMul serializer
-    context.library_node_serializer_registry
-        .register_library_node_serializer(sdfg::math::tensor::LibraryNodeType_QantMatMul.value(), []() {
-            return std::make_unique<sdfg::math::tensor::QantMatMulNodeSerializer>();
-        });
+
 
     // Register Q.ANT Conv dispatcher
     context.library_node_dispatcher_registry.register_library_node_dispatcher(
-        sdfg::math::tensor::LibraryNodeType_QantConv.value() + "::" + docc::qant::ImplementationType_QANT.value(),
+        sdfg::math::tensor::LibraryNodeType_Conv.value() + "::" + docc::qant::ImplementationType_QANT.value(),
         [](sdfg::codegen::LanguageExtension& language_extension,
            const sdfg::Function& function,
            const sdfg::data_flow::DataFlowGraph& data_flow_graph,
@@ -121,20 +111,14 @@ void register_plugin(sdfg::plugins::Context& context) {
                 language_extension,
                 function,
                 data_flow_graph,
-                dynamic_cast<const sdfg::math::tensor::QantConvNode&>(node)
+                dynamic_cast<const sdfg::math::tensor::ConvNode&>(node)
             );
         }
     );
 
-    // Register QantConv serializer
-    context.library_node_serializer_registry
-        .register_library_node_serializer(sdfg::math::tensor::LibraryNodeType_QantConv.value(), []() {
-            return std::make_unique<sdfg::math::tensor::QantConvNodeSerializer>();
-        });
-
     // Register Q.ANT Pooling dispatcher
     context.library_node_dispatcher_registry.register_library_node_dispatcher(
-        sdfg::math::tensor::LibraryNodeType_QantPooling.value() + "::" + docc::qant::ImplementationType_QANT.value(),
+        sdfg::math::tensor::LibraryNodeType_Pooling.value() + "::" + docc::qant::ImplementationType_QANT.value(),
         [](sdfg::codegen::LanguageExtension& language_extension,
            const sdfg::Function& function,
            const sdfg::data_flow::DataFlowGraph& data_flow_graph,
@@ -145,15 +129,9 @@ void register_plugin(sdfg::plugins::Context& context) {
         }
     );
 
-    // Register QantPooling serializer
-    context.library_node_serializer_registry
-        .register_library_node_serializer(sdfg::math::tensor::LibraryNodeType_QantPooling.value(), []() {
-            return std::make_unique<sdfg::math::tensor::QantPoolingNodeSerializer>();
-        });
-
     // Register Q.ANT ReLU dispatcher
     context.library_node_dispatcher_registry.register_library_node_dispatcher(
-        sdfg::math::tensor::LibraryNodeType_QantReLU.value() + "::" + docc::qant::ImplementationType_QANT.value(),
+        sdfg::math::tensor::LibraryNodeType_ReLU.value() + "::" + docc::qant::ImplementationType_QANT.value(),
         [](sdfg::codegen::LanguageExtension& language_extension,
            const sdfg::Function& function,
            const sdfg::data_flow::DataFlowGraph& data_flow_graph,
@@ -162,14 +140,14 @@ void register_plugin(sdfg::plugins::Context& context) {
                 language_extension,
                 function,
                 data_flow_graph,
-                dynamic_cast<const sdfg::math::tensor::QantReLUNode&>(node)
+                dynamic_cast<const sdfg::math::tensor::ReLUNode&>(node)
             );
         }
     );
 
     // Register Q.ANT Sigmoid dispatcher
     context.library_node_dispatcher_registry.register_library_node_dispatcher(
-        sdfg::math::tensor::LibraryNodeType_QantSigmoid.value() + "::" + docc::qant::ImplementationType_QANT.value(),
+        sdfg::math::tensor::LibraryNodeType_Sigmoid.value() + "::" + docc::qant::ImplementationType_QANT.value(),
         [](sdfg::codegen::LanguageExtension& language_extension,
            const sdfg::Function& function,
            const sdfg::data_flow::DataFlowGraph& data_flow_graph,
@@ -178,7 +156,7 @@ void register_plugin(sdfg::plugins::Context& context) {
                 language_extension,
                 function,
                 data_flow_graph,
-                dynamic_cast<const sdfg::math::tensor::QantSigmoidNode&>(node)
+                dynamic_cast<const sdfg::math::tensor::SigmoidNode&>(node)
             );
         }
     );
@@ -199,19 +177,6 @@ void register_plugin(sdfg::plugins::Context& context) {
         }
     );
 
-    // Register QantReLU serializer
-    context.library_node_serializer_registry
-        .register_library_node_serializer(sdfg::math::tensor::LibraryNodeType_QantReLU.value(), []() {
-            return std::make_unique<
-                sdfg::math::tensor::QantElementWiseBaseSerializer<sdfg::math::tensor::QantReLUNode>>();
-        });
-
-    // Register QantSigmoid serializer
-    context.library_node_serializer_registry
-        .register_library_node_serializer(sdfg::math::tensor::LibraryNodeType_QantSigmoid.value(), []() {
-            return std::make_unique<
-                sdfg::math::tensor::QantElementWiseBaseSerializer<sdfg::math::tensor::QantSigmoidNode>>();
-        });
 
     context.add_target(&qant_target);
 };

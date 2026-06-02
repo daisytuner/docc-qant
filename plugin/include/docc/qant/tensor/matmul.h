@@ -1,7 +1,6 @@
 #ifndef DOCC_QANT_TENSOR_MATMUL_H
 #define DOCC_QANT_TENSOR_MATMUL_H
 
-#include "docc/qant/dataflow/library_nodes/math/tensor/matmul_node.h"
 #include "docc/qant/passes/reduce_quantization_pass.h"
 #include "docc/qant/tensor/qant_tensor_dispatcher.h"
 #include "sdfg/codegen/dispatchers/block_dispatcher.h"
@@ -17,7 +16,7 @@ public:
         sdfg::codegen::LanguageExtension& language_extension,
         const sdfg::Function& function,
         const sdfg::data_flow::DataFlowGraph& data_flow_graph,
-        const sdfg::math::tensor::QantMatMulNode& node
+        const sdfg::math::tensor::MatMulNode& node
     );
 
     void dispatch_code(
@@ -27,7 +26,7 @@ public:
     ) override;
 
 private:
-    const sdfg::math::tensor::QantMatMulNode& matmul_node_;
+    const sdfg::math::tensor::MatMulNode& matmul_node_;
 };
 
 } // namespace tensor

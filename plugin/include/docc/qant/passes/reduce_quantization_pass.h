@@ -8,7 +8,6 @@
 #include <sdfg/structured_control_flow/block.h>
 #include <sdfg/visitor/structured_sdfg_visitor.h>
 
-#include "docc/qant/dataflow/library_nodes/math/tensor/matmul_node.h"
 #include "sdfg/codegen/code_snippet_factory.h"
 #include "sdfg/codegen/language_extension.h"
 #include "sdfg/codegen/utils.h"

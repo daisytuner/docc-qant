@@ -12,7 +12,6 @@
 #include "sdfg_debug_dump.h"
 #include "so_compile.h"
 
-#include "docc/qant/dataflow/library_nodes/math/tensor/pooling_node.h"
 #include "docc/qant/passes/remapping_pass.h"
 #include "docc/qant/plugin.h"
 #include "docc/qant/qant.h"
@@ -68,7 +67,7 @@ TEST(PoolingTest, MaxPool2D_QANT_Simple) {
     ));
 
     builder.add_computational_memlet(block, x_node, pooling_node, "X", {}, input_tensor_x, block.debug_info());
-    builder.add_computational_memlet(block, pooling_node, "Y", y_node, {}, output_tensor, block.debug_info());
+    builder.add_computational_memlet(block, y_node, pooling_node, "Y", {}, output_tensor, block.debug_info());
 
     sdfg.validate();
 
@@ -83,7 +82,7 @@ TEST(PoolingTest, MaxPool2D_QANT_Simple) {
 
     auto library_nodes = block.dataflow().library_nodes();
     EXPECT_EQ(library_nodes.size(), 1);
-    auto* new_node = dynamic_cast<sdfg::math::tensor::QantPoolingNode*>(*library_nodes.begin());
+    auto* new_node = dynamic_cast<sdfg::math::tensor::PoolingNode*>(*library_nodes.begin());
     EXPECT_TRUE(new_node);
     EXPECT_EQ(new_node->implementation_type(), docc::qant::ImplementationType_QANT.value());
 
@@ -206,7 +205,7 @@ TEST(PoolingTest, AvgPool2D_QANT_Simple) {
 
     auto library_nodes = block.dataflow().library_nodes();
     EXPECT_EQ(library_nodes.size(), 1);
-    auto* new_node = dynamic_cast<sdfg::math::tensor::QantPoolingNode*>(*library_nodes.begin());
+    auto* new_node = dynamic_cast<sdfg::math::tensor::PoolingNode*>(*library_nodes.begin());
     EXPECT_TRUE(new_node);
     EXPECT_EQ(new_node->implementation_type(), docc::qant::ImplementationType_QANT.value());
 
@@ -313,7 +312,7 @@ TEST(PoolingTest, MaxPool2D_QANT_Batched) {
     ));
 
     builder.add_computational_memlet(block, x_node, pooling_node, "X", {}, input_tensor_x, block.debug_info());
-    builder.add_computational_memlet(block, pooling_node, "Y", y_node, {}, output_tensor, block.debug_info());
+    builder.add_computational_memlet(block, y_node, pooling_node, "Y", {}, output_tensor, block.debug_info());
 
     sdfg.validate();
 
@@ -429,7 +428,7 @@ TEST(PoolingTest, AvgPool2D_QANT_Batched) {
     ));
 
     builder.add_computational_memlet(block, x_node, pooling_node, "X", {}, input_tensor_x, block.debug_info());
-    builder.add_computational_memlet(block, pooling_node, "Y", y_node, {}, output_tensor, block.debug_info());
+    builder.add_computational_memlet(block, y_node, pooling_node, "Y", {}, output_tensor, block.debug_info());
 
     sdfg.validate();
 

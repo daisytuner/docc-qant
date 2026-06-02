@@ -7,7 +7,6 @@
 
 #include <sdfg/passes/dataflow/tensor_to_pointer_conversion.h>
 #include <sdfg/passes/pipeline.h>
-#include "docc/qant/dataflow/library_nodes/math/tensor/matmul_node.h"
 #include "docc/qant/passes/remapping_pass.h"
 #include "docc/qant/qant.h"
 #include "sdfg/analysis/analysis.h"
@@ -30,6 +29,7 @@
 
 #include "docc/qant/plugin.h"
 #include "docc/qant/qant.h"
+#include "sdfg/data_flow/library_nodes/math/tensor/matmul_node.h"
 
 using namespace sdfg;
 
@@ -152,12 +152,12 @@ TEST(EinsumTest, Matmul_2D_BFloat16) {
 
     sdfg.validate();
 
-    // Verify the einsum node has been replaced with a QantMatMulNode
+    // Verify the einsum node has been replaced with a MatMulNode
     library_nodes = block.dataflow().library_nodes();
     EXPECT_EQ(library_nodes.size(), 1);
-    auto* qant_matmul = dynamic_cast<sdfg::math::tensor::QantMatMulNode*>(*library_nodes.begin());
+    auto* qant_matmul = dynamic_cast<sdfg::math::tensor::MatMulNode*>(*library_nodes.begin());
     EXPECT_TRUE(qant_matmul);
-    EXPECT_EQ(qant_matmul->code(), sdfg::math::tensor::LibraryNodeType_QantMatMul);
+    EXPECT_EQ(qant_matmul->code(), sdfg::math::tensor::LibraryNodeType_MatMul);
     EXPECT_EQ(qant_matmul->quantization(), types::PrimitiveType::BFloat);
     EXPECT_EQ(qant_matmul->implementation_type(), docc::qant::ImplementationType_QANT.value());
 
@@ -435,19 +435,19 @@ TEST(EinsumTest, GEMM_3D_Batched_BFloat16) {
     // Test Einsum2QantMatmul transformation on batched matmul
     analysis::AnalysisManager analysis_manager(sdfg);
 
-    // Run QantRemapping pass which should transform einsum to QantMatMul
+    // Run QantRemapping pass which should transform einsum to MatMul
     sdfg::passes::Pipeline expansion("QantRemapping");
     expansion.register_pass<sdfg::passes::QantRemappingPass>();
     expansion.run(builder, analysis_manager);
 
     sdfg.validate();
 
-    // Verify the einsum node has been replaced with a QantMatMulNode
+    // Verify the einsum node has been replaced with a MatMulNode
     library_nodes = block.dataflow().library_nodes();
     EXPECT_EQ(library_nodes.size(), 1);
-    auto* qant_matmul = dynamic_cast<sdfg::math::tensor::QantMatMulNode*>(*library_nodes.begin());
+    auto* qant_matmul = dynamic_cast<sdfg::math::tensor::MatMulNode*>(*library_nodes.begin());
     EXPECT_TRUE(qant_matmul);
-    EXPECT_EQ(qant_matmul->code(), sdfg::math::tensor::LibraryNodeType_QantMatMul);
+    EXPECT_EQ(qant_matmul->code(), sdfg::math::tensor::LibraryNodeType_MatMul);
     EXPECT_EQ(qant_matmul->quantization(), types::PrimitiveType::BFloat);
     EXPECT_EQ(qant_matmul->implementation_type(), docc::qant::ImplementationType_QANT.value());
 

@@ -18,7 +18,7 @@ MatMulNodeDispatcher_QANT::MatMulNodeDispatcher_QANT(
     sdfg::codegen::LanguageExtension& language_extension,
     const sdfg::Function& function,
     const sdfg::data_flow::DataFlowGraph& data_flow_graph,
-    const sdfg::math::tensor::QantMatMulNode& node
+    const sdfg::math::tensor::MatMulNode& node
 )
     : QantTensorLibNodeDispatcher(language_extension, function, data_flow_graph, node), matmul_node_(node) {}
 
@@ -112,10 +112,10 @@ void MatMulNodeDispatcher_QANT::dispatch_code(
     }
 
     std::string a_offset = calculate_tensor_start_offset(
-        matmul_node_.offset_a(), layout_a.strides(), batch_dims_a, max_batch_dims, batch_vars
+        layout_a.offset(), layout_a.strides(), batch_dims_a, max_batch_dims, batch_vars
     );
     std::string b_offset = calculate_tensor_start_offset(
-        matmul_node_.offset_b(), layout_b.strides(), batch_dims_b, max_batch_dims, batch_vars
+        layout_b.offset(), layout_b.strides(), batch_dims_b, max_batch_dims, batch_vars
     );
 
     // Compute batch offset for Y: row-major output with shape [batch..., M, N]

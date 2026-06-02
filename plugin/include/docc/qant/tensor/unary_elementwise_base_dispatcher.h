@@ -30,7 +30,7 @@ namespace tensor {
  */
 class UnaryElementWiseBaseDispatcher : public QantTensorLibNodeDispatcher {
 protected:
-    const sdfg::math::tensor::ElementWiseUnaryNode& ew_node_;
+    const sdfg::math::tensor::ElementWiseDataflowTensorNode& ew_node_;
 
 public:
     UnaryElementWiseBaseDispatcher(
@@ -38,7 +38,7 @@ public:
         const sdfg::Function& function,
         const sdfg::data_flow::DataFlowGraph& data_flow_graph,
         const sdfg::data_flow::LibraryNode& node,
-        const sdfg::math::tensor::ElementWiseUnaryNode& ew_node
+        const sdfg::math::tensor::ElementWiseDataflowTensorNode& ew_node
     );
 
     void dispatch_code(

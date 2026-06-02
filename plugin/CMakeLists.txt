@@ -3,11 +3,6 @@
 set(SOURCE_FILES_PRIVATE
     src/plugin.cpp
     src/qant/blas/gemm.cpp
-    src/qant/dataflow/library_nodes/math/tensor/conv_node.cpp
-    src/qant/dataflow/library_nodes/math/tensor/elementwise_ops/relu_node.cpp
-    src/qant/dataflow/library_nodes/math/tensor/elementwise_ops/sigmoid_node.cpp
-    src/qant/dataflow/library_nodes/math/tensor/matmul_node.cpp
-    src/qant/dataflow/library_nodes/math/tensor/pooling_node.cpp
     src/qant/passes/reduce_quantization_pass.cpp
     src/qant/passes/remapping_pass.cpp
     src/qant/qant_offloaded_visitor.cpp

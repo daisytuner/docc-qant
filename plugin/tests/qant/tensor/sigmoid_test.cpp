@@ -14,7 +14,6 @@
 #include "sdfg_debug_dump.h"
 #include "so_compile.h"
 
-#include "docc/qant/dataflow/library_nodes/math/tensor/elementwise_ops/sigmoid_node.h"
 #include "docc/qant/passes/remapping_pass.h"
 #include "docc/qant/plugin.h"
 #include "docc/qant/qant.h"
@@ -50,7 +49,7 @@ TEST(SigmoidTest, Sigmoid_1D_Vector) {
         math::tensor::SigmoidNode&>(builder.add_library_node<math::tensor::SigmoidNode>(block, DebugInfo(), shape));
 
     builder.add_computational_memlet(block, x_node, sigmoid_node, "X", {}, input_tensor, block.debug_info());
-    builder.add_computational_memlet(block, sigmoid_node, "Y", y_node, {}, output_tensor, block.debug_info());
+    builder.add_computational_memlet(block, y_node, sigmoid_node, "Y", {}, output_tensor, block.debug_info());
 
     // Check basic properties
     EXPECT_EQ(sigmoid_node.inputs().size(), 1);
@@ -79,7 +78,7 @@ TEST(SigmoidTest, Sigmoid_1D_Vector) {
 
     auto library_nodes = block.dataflow().library_nodes();
     EXPECT_EQ(library_nodes.size(), 1);
-    auto* new_node = dynamic_cast<sdfg::math::tensor::QantSigmoidNode*>(*library_nodes.begin());
+    auto* new_node = dynamic_cast<sdfg::math::tensor::SigmoidNode*>(*library_nodes.begin());
     EXPECT_TRUE(new_node);
     EXPECT_EQ(new_node->implementation_type(), docc::qant::ImplementationType_QANT.value());
 
@@ -156,7 +155,7 @@ TEST(SigmoidTest, Sigmoid_2D_Matrix) {
         math::tensor::SigmoidNode&>(builder.add_library_node<math::tensor::SigmoidNode>(block, DebugInfo(), shape));
 
     builder.add_computational_memlet(block, x_node, sigmoid_node, "X", {}, input_tensor, block.debug_info());
-    builder.add_computational_memlet(block, sigmoid_node, "Y", y_node, {}, output_tensor, block.debug_info());
+    builder.add_computational_memlet(block, y_node, sigmoid_node, "Y", {}, output_tensor, block.debug_info());
 
     sdfg.validate();
 
@@ -175,7 +174,7 @@ TEST(SigmoidTest, Sigmoid_2D_Matrix) {
 
     auto library_nodes = block.dataflow().library_nodes();
     EXPECT_EQ(library_nodes.size(), 1);
-    auto* new_node = dynamic_cast<sdfg::math::tensor::QantSigmoidNode*>(*library_nodes.begin());
+    auto* new_node = dynamic_cast<sdfg::math::tensor::SigmoidNode*>(*library_nodes.begin());
     EXPECT_TRUE(new_node);
     EXPECT_EQ(new_node->implementation_type(), docc::qant::ImplementationType_QANT.value());
 

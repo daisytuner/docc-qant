@@ -1,15 +1,12 @@
 #include "docc/qant/passes/remapping_pass.h"
-#include "docc/qant/dataflow/library_nodes/math/tensor/conv_node.h"
-#include "docc/qant/dataflow/library_nodes/math/tensor/elementwise_ops/relu_node.h"
-#include "docc/qant/dataflow/library_nodes/math/tensor/matmul_node.h"
-#include "docc/qant/dataflow/library_nodes/math/tensor/pooling_node.h"
-#include "docc/qant/passes/remapping_pass.h"
+
 #include "docc/qant/qant.h"
 #include "docc/qant/transformations/einsum2qant_matmul.h"
 
 #include "sdfg/analysis/analysis.h"
 #include "sdfg/data_flow/library_node.h"
 #include "sdfg/data_flow/library_nodes/math/math.h"
+#include "sdfg/data_flow/library_nodes/math/tensor/batchnorm_node.h"
 #include "sdfg/data_flow/library_nodes/math/tensor/conv_node.h"
 #include "sdfg/data_flow/library_nodes/math/tensor/elementwise_ops/relu_node.h"
 #include "sdfg/data_flow/library_nodes/math/tensor/matmul_node.h"
@@ -18,9 +15,6 @@
 #include "sdfg/types/tensor.h"
 
 #include <stdexcept>
-
-#include "docc/qant/dataflow/library_nodes/math/tensor/elementwise_ops/sigmoid_node.h"
-#include "sdfg/data_flow/library_nodes/math/tensor/batchnorm_node.h"
 
 namespace sdfg {
 namespace passes {
@@ -44,10 +38,8 @@ bool QantRemapping::accept(structured_control_flow::Block& node) {
         auto& libNode_code = library_node->code();
         if (libNode_code == math::tensor::LibraryNodeType_MatMul.value()) {
             auto* matmul_node = dynamic_cast<math::tensor::MatMulNode*>(library_node);
-            auto layout_a =
-                math::tensor::TensorLayout(matmul_node->shape_a(), matmul_node->strides_a(), matmul_node->offset_a());
-            auto layout_b =
-                math::tensor::TensorLayout(matmul_node->shape_b(), matmul_node->strides_b(), matmul_node->offset_b());
+            auto layout_a = matmul_node->layout_a();
+            auto layout_b = matmul_node->layout_b();
             if (!layout_a.has_linear_accesses_no_padding() && !layout_a.has_transposed_strides_no_padding() ||
                 !layout_b.has_linear_accesses_no_padding() && !layout_b.has_transposed_strides_no_padding()) {
                 if (report_) {
@@ -55,81 +47,40 @@ bool QantRemapping::accept(structured_control_flow::Block& node) {
                 }
                 continue; // cannot handle layouts, which we cannot classify into transposed or !transposed
             }
-            auto quantization = matmul_node->primitive_type(dataflow);
-            new_node = &builder_.add_library_node<
-                math::tensor::QantMatMulNode>(node, matmul_node->debug_info(), quantization, layout_a, layout_b);
-            new_node->implementation_type() = docc::qant::ImplementationType_QANT;
+            matmul_node->implementation_type() = docc::qant::ImplementationType_QANT;
             if (report_) {
                 report_->transform_applied("QantMatmul");
             }
         } else if (libNode_code == math::tensor::LibraryNodeType_Conv.value()) {
             auto* conv_node = dynamic_cast<math::tensor::ConvNode*>(library_node);
 
-            // QANT conv_fprop does not support bias — skip if "B" is connected
-            bool has_bias = false;
-            for (auto& iedge : dataflow.in_edges(*conv_node)) {
-                if (iedge.dst_conn() == "B") {
-                    has_bias = true;
-                    break;
-                }
-            }
-            if (has_bias) {
+            if (conv_node->has_bias()) {
                 if (report_) {
                     report_->transform_impossible("QantConv", "has_bias");
                 }
                 continue;
             }
 
-            auto quantization = conv_node->primitive_type(dataflow);
-            new_node = &builder_.add_library_node<math::tensor::QantConvNode>(
-                node,
-                conv_node->debug_info(),
-                quantization,
-                conv_node->shape(),
-                conv_node->kernel_shape(),
-                conv_node->strides(),
-                conv_node->pads(),
-                conv_node->dilations(),
-                conv_node->output_channels(),
-                conv_node->group()
-            );
-            new_node->implementation_type() = docc::qant::ImplementationType_QANT;
+            conv_node->implementation_type() = docc::qant::ImplementationType_QANT;
             if (report_) {
                 report_->transform_applied("QantConv");
             }
         } else if (libNode_code == math::tensor::LibraryNodeType_Pooling.value()) {
             auto* pooling_node = dynamic_cast<math::tensor::PoolingNode*>(library_node);
-            auto quantization = pooling_node->primitive_type(dataflow);
-            new_node = &builder_.add_library_node<math::tensor::QantPoolingNode>(
-                node,
-                pooling_node->debug_info(),
-                quantization,
-                pooling_node->mode(),
-                pooling_node->shape(),
-                pooling_node->kernel_shape(),
-                pooling_node->strides(),
-                pooling_node->pads(),
-                pooling_node->dilations()
-            );
-            new_node->implementation_type() = docc::qant::ImplementationType_QANT;
+            pooling_node->implementation_type() = docc::qant::ImplementationType_QANT;
             if (report_) {
                 report_->transform_applied("QantPooling");
             }
         } else if (libNode_code == math::tensor::LibraryNodeType_ReLU.value()) {
             auto* relu_node = dynamic_cast<math::tensor::ReLUNode*>(library_node);
-            auto quantization = relu_node->primitive_type(dataflow);
-            new_node = &builder_.add_library_node<
-                math::tensor::QantReLUNode>(node, relu_node->debug_info(), quantization, relu_node->shape());
-            new_node->implementation_type() = docc::qant::ImplementationType_QANT;
+            relu_node->implementation_type() = docc::qant::ImplementationType_QANT;
             if (report_) {
                 report_->transform_applied("QantReLU");
             }
         } else if (libNode_code == math::tensor::LibraryNodeType_Sigmoid.value()) {
             auto* sigmoid_node = dynamic_cast<math::tensor::SigmoidNode*>(library_node);
             auto quantization = sigmoid_node->primitive_type(dataflow);
-            new_node = &builder_.add_library_node<
-                math::tensor::QantSigmoidNode>(node, sigmoid_node->debug_info(), quantization, sigmoid_node->shape());
-            new_node->implementation_type() = docc::qant::ImplementationType_QANT;
+            sigmoid_node->implementation_type() = docc::qant::ImplementationType_QANT;
             if (report_) {
                 report_->transform_applied("QantSigmoid");
             }
@@ -143,7 +94,7 @@ bool QantRemapping::accept(structured_control_flow::Block& node) {
             }
         } else if (libNode_code == math::tensor::LibraryNodeType_BatchNorm.value()) {
             auto* batchnorm_node = dynamic_cast<math::tensor::BatchNormNode*>(library_node);
-            auto quantization = batchnorm_node->primitive_type(dataflow);
+            auto quantization = batchnorm_node->quantization();
             if (quantization == types::Float && batchnorm_node->batch_layout().dims() == 4) { // only batchnorm2d and
                                                                                               // float
                 batchnorm_node->implementation_type() = docc::qant::ImplementationType_QANT;

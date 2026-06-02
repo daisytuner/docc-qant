@@ -12,7 +12,6 @@
 #include "sdfg_debug_dump.h"
 #include "so_compile.h"
 
-#include "docc/qant/dataflow/library_nodes/math/tensor/conv_node.h"
 #include "docc/qant/passes/remapping_pass.h"
 #include "docc/qant/plugin.h"
 #include "docc/qant/qant.h"
@@ -85,7 +84,7 @@ TEST(ConvTest, Conv2D_QANT_Simple) {
 
     builder.add_computational_memlet(block, x_node, conv_node, "X", {}, input_tensor_x, block.debug_info());
     builder.add_computational_memlet(block, w_node, conv_node, "W", {}, input_tensor_w, block.debug_info());
-    builder.add_computational_memlet(block, conv_node, "Y", y_node, {}, output_tensor, block.debug_info());
+    builder.add_computational_memlet(block, y_node, conv_node, "Y", {}, output_tensor, block.debug_info());
 
     sdfg.validate();
 
@@ -100,7 +99,7 @@ TEST(ConvTest, Conv2D_QANT_Simple) {
 
     auto library_nodes = block.dataflow().library_nodes();
     EXPECT_EQ(library_nodes.size(), 1);
-    auto* new_node = dynamic_cast<sdfg::math::tensor::QantConvNode*>(*library_nodes.begin());
+    auto* new_node = dynamic_cast<sdfg::math::tensor::ConvNode*>(*library_nodes.begin());
     EXPECT_TRUE(new_node);
     EXPECT_EQ(new_node->implementation_type(), docc::qant::ImplementationType_QANT.value());
 
@@ -229,7 +228,7 @@ TEST(ConvTest, Conv2D_QANT_WithPadding) {
 
     builder.add_computational_memlet(block, x_node, conv_node, "X", {}, input_tensor_x, block.debug_info());
     builder.add_computational_memlet(block, w_node, conv_node, "W", {}, input_tensor_w, block.debug_info());
-    builder.add_computational_memlet(block, conv_node, "Y", y_node, {}, output_tensor, block.debug_info());
+    builder.add_computational_memlet(block, y_node, conv_node, "Y", {}, output_tensor, block.debug_info());
 
     sdfg.validate();
 
@@ -243,7 +242,7 @@ TEST(ConvTest, Conv2D_QANT_WithPadding) {
 
     auto library_nodes = block.dataflow().library_nodes();
     EXPECT_EQ(library_nodes.size(), 1);
-    auto* new_node = dynamic_cast<sdfg::math::tensor::QantConvNode*>(*library_nodes.begin());
+    auto* new_node = dynamic_cast<sdfg::math::tensor::ConvNode*>(*library_nodes.begin());
     EXPECT_TRUE(new_node);
     EXPECT_EQ(new_node->implementation_type(), docc::qant::ImplementationType_QANT.value());
 

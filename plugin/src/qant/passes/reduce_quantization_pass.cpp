@@ -1,13 +1,12 @@
 #include "docc/qant/passes/reduce_quantization_pass.h"
 
-#include "docc/qant/dataflow/library_nodes/math/tensor/conv_node.h"
-#include "docc/qant/dataflow/library_nodes/math/tensor/elementwise_ops/relu_node.h"
-#include "docc/qant/dataflow/library_nodes/math/tensor/matmul_node.h"
-#include "docc/qant/dataflow/library_nodes/math/tensor/pooling_node.h"
 #include "docc/qant/qant.h"
 #include "sdfg/codegen/dispatchers/node_dispatcher_registry.h"
 #include "sdfg/codegen/language_extensions/cpp_language_extension.h"
+#include "sdfg/data_flow/library_nodes/math/tensor/conv_node.h"
 #include "sdfg/data_flow/library_nodes/math/tensor/matmul_node.h"
+#include "sdfg/data_flow/library_nodes/math/tensor/pooling_node.h"
+#include "sdfg/data_flow/library_nodes/math/tensor/elementwise_ops/relu_node.h"
 
 namespace docc::qant {
 
@@ -34,10 +33,10 @@ bool ReduceQuantizationVisitor::try_reduce(
     sdfg::builder::StructuredSDFGBuilder& builder
 ) {
     auto& code = node.code();
-    if (code == sdfg::math::tensor::LibraryNodeType_QantMatMul) {
-        auto& matmul_node = dynamic_cast<sdfg::math::tensor::QantMatMulNode&>(node);
+    if (code == sdfg::math::tensor::LibraryNodeType_MatMul) {
+        auto& matmul_node = dynamic_cast<sdfg::math::tensor::MatMulNode&>(node);
         if (matmul_node.quantization() == sdfg::types::Float) {
-            matmul_node.set_quantization(sdfg::types::BFloat);
+            matmul_node.set_fixed_quantization(sdfg::types::BFloat);
             check_in_edge_for_modification(
                 dflow, node, types::BFloat, dflow.in_edge_for_connector(node, matmul_node.input(0))
             );
@@ -47,26 +46,26 @@ bool ReduceQuantizationVisitor::try_reduce(
             // check_out_edges_for_modification(dflow, node, types::BFloat, dflow.out_edges_for_connector(node,
             // matmul_node.output(0))); expected to change for safer modelling
         }
-    } else if (code == sdfg::math::tensor::LibraryNodeType_QantConv) {
-        auto& conv_node = dynamic_cast<sdfg::math::tensor::QantConvNode&>(node);
+    } else if (code == sdfg::math::tensor::LibraryNodeType_Conv) {
+        auto& conv_node = dynamic_cast<sdfg::math::tensor::ConvNode&>(node);
         if (conv_node.quantization() == sdfg::types::Float) {
-            conv_node.set_quantization(sdfg::types::BFloat);
+            conv_node.set_fixed_quantization(sdfg::types::BFloat);
             // wait on standardized handling of optional inputs
         }
-    } else if (code == sdfg::math::tensor::LibraryNodeType_QantPooling) {
-        auto& pooling_node = dynamic_cast<sdfg::math::tensor::QantPoolingNode&>(node);
+    } else if (code == sdfg::math::tensor::LibraryNodeType_Pooling) {
+        auto& pooling_node = dynamic_cast<sdfg::math::tensor::PoolingNode&>(node);
         if (pooling_node.quantization() == sdfg::types::Float) {
-            pooling_node.set_quantization(sdfg::types::BFloat);
+            pooling_node.set_fixed_quantization(sdfg::types::BFloat);
             check_in_edge_for_modification(
                 dflow, node, types::BFloat, dflow.in_edge_for_connector(node, pooling_node.input(0))
             );
             // check_out_edges_for_modification(dflow, node, types::BFloat, dflow.out_edges_for_connector(node,
             // pooling_node.output(0))); expected to change for safer modelling
         }
-    } else if (code == sdfg::math::tensor::LibraryNodeType_QantReLU) {
-        auto& relu_node = dynamic_cast<sdfg::math::tensor::QantReLUNode&>(node);
+    } else if (code == sdfg::math::tensor::LibraryNodeType_ReLU) {
+        auto& relu_node = dynamic_cast<sdfg::math::tensor::ReLUNode&>(node);
         if (relu_node.quantization() == types::Float) {
-            relu_node.set_quantization(types::BFloat);
+            relu_node.set_fixed_quantization(types::BFloat);
             check_in_edge_for_modification(
                 dflow, node, types::BFloat, dflow.in_edge_for_connector(node, relu_node.input(0))
             );

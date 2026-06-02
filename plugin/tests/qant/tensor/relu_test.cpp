@@ -14,7 +14,6 @@
 #include "sdfg_debug_dump.h"
 #include "so_compile.h"
 
-#include "docc/qant/dataflow/library_nodes/math/tensor/elementwise_ops/relu_node.h"
 #include "docc/qant/passes/remapping_pass.h"
 #include "docc/qant/plugin.h"
 #include "docc/qant/qant.h"
@@ -49,7 +48,7 @@ TEST(ReLUTest, ReLU_1D_Vector) {
         );
 
     builder.add_computational_memlet(block, x_node, relu_node, "X", {}, input_tensor, block.debug_info());
-    builder.add_computational_memlet(block, relu_node, "Y", y_node, {}, output_tensor, block.debug_info());
+    builder.add_computational_memlet(block, y_node, relu_node, "Y", {}, output_tensor, block.debug_info());
 
     // Check basic properties
     EXPECT_EQ(relu_node.inputs().size(), 1);
@@ -78,7 +77,7 @@ TEST(ReLUTest, ReLU_1D_Vector) {
 
     auto library_nodes = block.dataflow().library_nodes();
     EXPECT_EQ(library_nodes.size(), 1);
-    auto* new_node = dynamic_cast<sdfg::math::tensor::QantReLUNode*>(*library_nodes.begin());
+    auto* new_node = dynamic_cast<sdfg::math::tensor::ReLUNode*>(*library_nodes.begin());
     EXPECT_TRUE(new_node);
     EXPECT_EQ(new_node->implementation_type(), docc::qant::ImplementationType_QANT.value());
 
@@ -156,7 +155,7 @@ TEST(ReLUTest, ReLU_2D_Matrix) {
         );
 
     builder.add_computational_memlet(block, x_node, relu_node, "X", {}, input_tensor, block.debug_info());
-    builder.add_computational_memlet(block, relu_node, "Y", y_node, {}, output_tensor, block.debug_info());
+    builder.add_computational_memlet(block, y_node, relu_node, "Y", {}, output_tensor, block.debug_info());
 
     sdfg.validate();
 
@@ -175,7 +174,7 @@ TEST(ReLUTest, ReLU_2D_Matrix) {
 
     auto library_nodes = block.dataflow().library_nodes();
     EXPECT_EQ(library_nodes.size(), 1);
-    auto* new_node = dynamic_cast<sdfg::math::tensor::QantReLUNode*>(*library_nodes.begin());
+    auto* new_node = dynamic_cast<sdfg::math::tensor::ReLUNode*>(*library_nodes.begin());
     EXPECT_TRUE(new_node);
     EXPECT_EQ(new_node->implementation_type(), docc::qant::ImplementationType_QANT.value());
 

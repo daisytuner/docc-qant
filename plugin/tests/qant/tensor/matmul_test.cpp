@@ -13,7 +13,6 @@
 #include "sdfg_debug_dump.h"
 #include "so_compile.h"
 
-#include "docc/qant/dataflow/library_nodes/math/tensor/matmul_node.h"
 #include "docc/qant/passes/remapping_pass.h"
 #include "docc/qant/plugin.h"
 #include "docc/qant/qant.h"
@@ -57,7 +56,7 @@ TEST(MatMulTest, MatMul_2D_SimpleMatrix) {
 
     builder.add_computational_memlet(block, a_node, matmul_node, "A", {}, input_tensor_a, block.debug_info());
     builder.add_computational_memlet(block, b_node, matmul_node, "B", {}, input_tensor_b, block.debug_info());
-    builder.add_computational_memlet(block, matmul_node, "Y", y_node, {}, output_tensor, block.debug_info());
+    builder.add_computational_memlet(block, y_node, matmul_node, "Y", {}, output_tensor, block.debug_info());
 
     // Check basic properties
     EXPECT_EQ(matmul_node.inputs().size(), 2);
@@ -92,7 +91,7 @@ TEST(MatMulTest, MatMul_2D_SimpleMatrix) {
 
     auto library_nodes = block.dataflow().library_nodes();
     EXPECT_EQ(library_nodes.size(), 1);
-    auto* new_node = dynamic_cast<sdfg::math::tensor::QantMatMulNode*>(*library_nodes.begin());
+    auto* new_node = dynamic_cast<sdfg::math::tensor::MatMulNode*>(*library_nodes.begin());
     EXPECT_TRUE(new_node);
     EXPECT_EQ(new_node->implementation_type(), docc::qant::ImplementationType_QANT.value());
 
@@ -180,7 +179,7 @@ TEST(MatMulTest, MatMul_3D_Batched) {
 
     builder.add_computational_memlet(block, a_node, matmul_node, "A", {}, input_tensor_a, block.debug_info());
     builder.add_computational_memlet(block, b_node, matmul_node, "B", {}, input_tensor_b, block.debug_info());
-    builder.add_computational_memlet(block, matmul_node, "Y", y_node, {}, output_tensor, block.debug_info());
+    builder.add_computational_memlet(block, y_node, matmul_node, "Y", {}, output_tensor, block.debug_info());
 
     // Check dimensions
     EXPECT_TRUE(symbolic::eq(matmul_node.m(), symbolic::integer(4)));
@@ -204,7 +203,7 @@ TEST(MatMulTest, MatMul_3D_Batched) {
 
     auto library_nodes = block.dataflow().library_nodes();
     EXPECT_EQ(library_nodes.size(), 1);
-    auto* new_node = dynamic_cast<sdfg::math::tensor::QantMatMulNode*>(*library_nodes.begin());
+    auto* new_node = dynamic_cast<sdfg::math::tensor::MatMulNode*>(*library_nodes.begin());
     EXPECT_TRUE(new_node);
     EXPECT_EQ(new_node->implementation_type(), docc::qant::ImplementationType_QANT.value());
 

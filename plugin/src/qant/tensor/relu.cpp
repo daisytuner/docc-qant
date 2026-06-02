@@ -10,7 +10,7 @@ ReLUNodeDispatcher_QANT::ReLUNodeDispatcher_QANT(
     sdfg::codegen::LanguageExtension& language_extension,
     const sdfg::Function& function,
     const sdfg::data_flow::DataFlowGraph& data_flow_graph,
-    const sdfg::math::tensor::QantReLUNode& node
+    const sdfg::math::tensor::ReLUNode& node
 )
     : UnaryElementWiseBaseDispatcher(language_extension, function, data_flow_graph, node, node) {}
 

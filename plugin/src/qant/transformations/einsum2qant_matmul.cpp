@@ -8,11 +8,11 @@
 #include <string>
 #include <vector>
 
-#include "docc/qant/dataflow/library_nodes/math/tensor/matmul_node.h"
 #include "docc/qant/qant.h"
 #include "sdfg/analysis/analysis.h"
 #include "sdfg/builder/structured_sdfg_builder.h"
 #include "sdfg/data_flow/library_node.h"
+#include "sdfg/data_flow/library_nodes/math/tensor/matmul_node.h"
 #include "sdfg/data_flow/library_nodes/math/tensor/tensor_layout.h"
 #include "sdfg/symbolic/symbolic.h"
 #include "sdfg/transformations/transformation.h"
@@ -324,16 +324,13 @@ void Einsum2QantMatmul::apply(builder::StructuredSDFGBuilder& builder, analysis:
     math::tensor::TensorLayout layout_a(shape_a, strides_a, symbolic::integer(0));
     math::tensor::TensorLayout layout_b(shape_b, strides_b, symbolic::integer(0));
 
-    // Add the QantMatMul node
+    // Add the MatMul node
     auto& libnode = builder.add_library_node<
-        math::tensor::QantMatMulNode>(*block, this->einsum_node_.debug_info(), quantization, layout_a, layout_b);
+        math::tensor::MatMulNode>(*block, this->einsum_node_.debug_info(), layout_a, layout_b, quantization, docc::qant::ImplementationType_QANT);
 
-    // Set the implementation type to QANT
-    libnode.implementation_type() = docc::qant::ImplementationType_QANT;
-
-    // Copy the memlets - QantMatMulNode uses connectors "A", "B", "Y"
+    // Copy the memlets - MatMulNode uses connectors "A", "B", "Y"
     // Convert Tensor types to Pointer types for computational memlets
-    // Note: We ignore alpha if it exists - QantMatMul doesn't support scalar multiplication
+    // Note: We ignore alpha if it exists - MatMul doesn't support scalar multiplication
     for (auto& iedge : dfg.in_edges(this->einsum_node_)) {
         if (iedge.dst_conn() == this->einsum_node_.input(A)) {
             auto& tensor_type = static_cast<const types::Tensor&>(iedge.base_type());
@@ -348,7 +345,7 @@ void Einsum2QantMatmul::apply(builder::StructuredSDFGBuilder& builder, analysis:
                 *block, iedge.src(), iedge.src_conn(), libnode, "B", iedge.subset(), pointer_type, iedge.debug_info()
             );
         }
-        // Skip C input and alpha - QantMatMul handles accumulation internally
+        // Skip C input and alpha - MatMul handles accumulation internally
     }
 
     for (auto& oedge : dfg.out_edges(this->einsum_node_)) {

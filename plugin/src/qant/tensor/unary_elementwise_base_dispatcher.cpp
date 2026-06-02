@@ -18,7 +18,7 @@ UnaryElementWiseBaseDispatcher::UnaryElementWiseBaseDispatcher(
     const sdfg::Function& function,
     const sdfg::data_flow::DataFlowGraph& data_flow_graph,
     const sdfg::data_flow::LibraryNode& node,
-    const sdfg::math::tensor::ElementWiseUnaryNode& ew_node
+    const sdfg::math::tensor::ElementWiseDataflowTensorNode& ew_node
 )
     : QantTensorLibNodeDispatcher(language_extension, function, data_flow_graph, node), ew_node_(ew_node) {}
 
