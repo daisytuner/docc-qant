@@ -32,7 +32,7 @@ void UnaryElementWiseBaseDispatcher::dispatch_code(
     auto& dflow = node_.get_parent();
 
     auto* input_x_memlet = dflow.in_edge_for_connector(node_, "X");
-    auto* output_memlet = require_unique_output_edge(dflow, node_, "Y");
+    auto* result_memlet = dflow.in_edge_for_connector(node_, "Y");
 
     const auto target_type = types::PrimitiveType::BFloat;
 
@@ -50,7 +50,7 @@ void UnaryElementWiseBaseDispatcher::dispatch_code(
     }
 
     bool need_x_conversion = input_x_memlet->base_type().primitive_type() != target_type;
-    bool need_y_conversion = output_memlet->base_type().primitive_type() != target_type;
+    bool need_y_conversion = result_memlet->base_type().primitive_type() != target_type;
 
     stream << "{" << std::endl;
     stream.setIndent(stream.indent() + 4);
@@ -99,7 +99,7 @@ void UnaryElementWiseBaseDispatcher::dispatch_code(
     stream << "}" << std::endl;
     stream << std::endl;
 
-    emit_copy_result_back_and_cleanup(output, output_memlet, "__qant_result", "Y", size_str, types::BFloat);
+    emit_copy_result_back_and_cleanup(output, result_memlet, "__qant_result", "Y", size_str, types::BFloat);
 
     // Free temporary allocations
     for (auto& alloc : temp_allocs) {

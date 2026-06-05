@@ -42,9 +42,9 @@ void MatMulNodeDispatcher_QANT::dispatch_code(
 
     auto& dflow = node_.get_parent();
 
-    auto* input_a_memlet = dflow.in_edge_for_connector(node_, node_.input(0));
-    auto* input_b_memlet = dflow.in_edge_for_connector(node_, node_.input(1));
-    auto* output_memlet = require_unique_output_edge(dflow, node_, node_.output(0));
+    auto* input_a_memlet = dflow.in_edge_for_connector(node_, "A");
+    auto* input_b_memlet = dflow.in_edge_for_connector(node_, "B");
+    auto* result_memlet = dflow.in_edge_for_connector(node_, "Y");
 
 
     std::string m_expr = language_extension_.expression(matmul_node_.m());
@@ -193,7 +193,7 @@ void MatMulNodeDispatcher_QANT::dispatch_code(
     stream.setIndent(stream.indent() - 4);
     stream << "}" << std::endl;
 
-    emit_copy_result_back_and_cleanup(output, output_memlet, "__qant_result", y_dst_var, size_C, required_math_type);
+    emit_copy_result_back_and_cleanup(output, result_memlet, "__qant_result", y_dst_var, size_C, required_math_type);
 
     for (auto& alloc : temp_allocs) {
         stream << "free(" << alloc << ");" << std::endl;

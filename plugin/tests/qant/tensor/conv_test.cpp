@@ -79,7 +79,8 @@ TEST(ConvTest, Conv2D_QANT_Simple) {
         pads_vec,
         dilations_vec,
         symbolic::integer(C_out),
-        symbolic::integer(1)
+        symbolic::integer(1),
+        false
     ));
 
     builder.add_computational_memlet(block, x_node, conv_node, "X", {}, input_tensor_x, block.debug_info());
@@ -223,7 +224,8 @@ TEST(ConvTest, Conv2D_QANT_WithPadding) {
         pads_vec,
         dilations_vec,
         symbolic::integer(C_out),
-        symbolic::integer(1)
+        symbolic::integer(1),
+        false
     ));
 
     builder.add_computational_memlet(block, x_node, conv_node, "X", {}, input_tensor_x, block.debug_info());

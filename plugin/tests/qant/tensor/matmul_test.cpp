@@ -59,11 +59,11 @@ TEST(MatMulTest, MatMul_2D_SimpleMatrix) {
     builder.add_computational_memlet(block, y_node, matmul_node, "Y", {}, output_tensor, block.debug_info());
 
     // Check basic properties
-    EXPECT_EQ(matmul_node.inputs().size(), 2);
-    EXPECT_EQ(matmul_node.inputs()[0], "A");
-    EXPECT_EQ(matmul_node.inputs()[1], "B");
-    EXPECT_EQ(matmul_node.outputs().size(), 1);
-    EXPECT_EQ(matmul_node.outputs()[0], "Y");
+    EXPECT_EQ(matmul_node.inputs().size(), 3);
+    EXPECT_EQ(matmul_node.inputs()[math::tensor::MatMulNode::Y_INPUT_IDX], "Y");
+    EXPECT_EQ(matmul_node.inputs()[math::tensor::MatMulNode::A_INPUT_IDX], "A");
+    EXPECT_EQ(matmul_node.inputs()[math::tensor::MatMulNode::B_INPUT_IDX], "B");
+    EXPECT_EQ(matmul_node.outputs().size(), 0);
 
     // Check dimensions
     EXPECT_TRUE(symbolic::eq(matmul_node.m(), symbolic::integer(4)));

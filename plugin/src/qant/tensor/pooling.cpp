@@ -68,11 +68,7 @@ void PoolingNodeDispatcher_QANT::dispatch_code(
 
     auto& dflow = node_.get_parent();
     auto* input_x_memlet = dflow.in_edge_for_connector(node_, "X");
-    auto out_edges = dflow.out_edges_for_connector(node_, "Y");
-    if (out_edges.size() != 1) {
-        throw std::runtime_error("QANT pooling dispatcher: expected exactly 1 output edge for Y");
-    }
-    auto* output_memlet = out_edges.at(0);
+    auto result_memlet = dflow.in_edge_for_connector(node_, "Y");
 
     const auto target_type = types::PrimitiveType::BFloat;
 
@@ -111,7 +107,7 @@ void PoolingNodeDispatcher_QANT::dispatch_code(
     auto size_X_sym = symbolic::mul(symbolic::mul(shape[0], shape[1]), symbolic::mul(shape[2], shape[3]));
 
     bool need_x_conversion = input_x_memlet->base_type().primitive_type() != target_type;
-    bool need_y_conversion = output_memlet->base_type().primitive_type() != target_type;
+    bool need_y_conversion = result_memlet->base_type().primitive_type() != target_type;
 
     stream << "{" << std::endl;
     stream.setIndent(stream.indent() + 4);
@@ -198,7 +194,7 @@ void PoolingNodeDispatcher_QANT::dispatch_code(
     stream.setIndent(stream.indent() + 4);
     stream << "Y[__qant_y_offset + __q_i] = ";
     if (need_y_conversion) {
-        stream << "static_cast<" << language_extension_.primitive_type(output_memlet->base_type().primitive_type())
+        stream << "static_cast<" << language_extension_.primitive_type(result_memlet->base_type().primitive_type())
                << ">(";
     }
     stream << "__qant_result_data[__q_i]";

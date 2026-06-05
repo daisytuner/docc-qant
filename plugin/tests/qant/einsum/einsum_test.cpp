@@ -162,8 +162,8 @@ TEST(EinsumTest, Matmul_2D_BFloat16) {
     EXPECT_EQ(qant_matmul->implementation_type(), docc::qant::ImplementationType_QANT.value());
 
     // Verify the node has correct inputs and outputs
-    EXPECT_EQ(block.dataflow().in_degree(*qant_matmul), 2); // A and B inputs
-    EXPECT_EQ(block.dataflow().out_degree(*qant_matmul), 1); // Y output
+    EXPECT_EQ(block.dataflow().in_degree(*qant_matmul), 3); // Y, A and B inputs
+    EXPECT_EQ(block.dataflow().out_degree(*qant_matmul), 0);
 
     sdfg::passes::TensorToPointerConversionPass tensor_to_pointer_conversion_pass;
     tensor_to_pointer_conversion_pass.run(builder, analysis_manager);
@@ -452,8 +452,8 @@ TEST(EinsumTest, GEMM_3D_Batched_BFloat16) {
     EXPECT_EQ(qant_matmul->implementation_type(), docc::qant::ImplementationType_QANT.value());
 
     // Verify the node has correct inputs and outputs
-    EXPECT_EQ(block.dataflow().in_degree(*qant_matmul), 2); // A and B inputs
-    EXPECT_EQ(block.dataflow().out_degree(*qant_matmul), 1); // Y output
+    EXPECT_EQ(block.dataflow().in_degree(*qant_matmul), 3); // Y, A and B inputs
+    EXPECT_EQ(block.dataflow().out_degree(*qant_matmul), 0); // Y output
 
     // Verify tensor layouts include batch dimension
     const auto& layout_a = qant_matmul->layout_a();

@@ -14,6 +14,8 @@ namespace docc::qant {
 sdfg::plugins::Context docc_context = sdfg::plugins::Context::global_context();
 
 static std::unique_ptr<docc::util::DefaultDoccPaths> find_docc_paths() {
+    auto test = util::DefaultDoccPaths::from_lib_location(util::find_lib_location());
+
     return std::make_unique<
         util::DefaultDoccPaths>(DOCC_PATHS_BIN, DOCC_PATHS_SRC, util::DefaultDoccPaths::DoccRootMode::CMake);
 }

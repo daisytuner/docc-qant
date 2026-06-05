@@ -51,10 +51,10 @@ TEST(ReLUTest, ReLU_1D_Vector) {
     builder.add_computational_memlet(block, y_node, relu_node, "Y", {}, output_tensor, block.debug_info());
 
     // Check basic properties
-    EXPECT_EQ(relu_node.inputs().size(), 1);
-    EXPECT_EQ(relu_node.inputs()[0], "X");
-    EXPECT_EQ(relu_node.outputs().size(), 1);
-    EXPECT_EQ(relu_node.outputs()[0], "Y");
+    EXPECT_EQ(relu_node.inputs().size(), 2);
+    EXPECT_EQ(relu_node.input(0), "Y");
+    EXPECT_EQ(relu_node.input(1), "X");
+    EXPECT_EQ(relu_node.outputs().size(), 0);
 
     sdfg.validate();
 

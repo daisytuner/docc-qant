@@ -203,7 +203,16 @@ bool Einsum2QantMatmul::
     }
 
     // Determine and check the base type of output
-    auto& oedge = *dfg.out_edges(this->einsum_node_).begin();
+    auto oedges = dfg.out_edges_for_connector(this->einsum_node_, this->einsum_node_.output(0));
+    if (oedges.size() != 1) {
+        return false;
+    }
+    auto& oedge = *oedges.at(0);
+
+    if (!dfg.find_standalone_exit(&oedge)) {
+        return false;
+    }
+
     auto data_type = oedge.base_type().primitive_type();
 
     // QANT supports Float, Double, and BFloat
@@ -348,28 +357,20 @@ void Einsum2QantMatmul::apply(builder::StructuredSDFGBuilder& builder, analysis:
         // Skip C input and alpha - MatMul handles accumulation internally
     }
 
-    for (auto& oedge : dfg.out_edges(this->einsum_node_)) {
-        if (oedge.src_conn() == this->einsum_node_.output(0)) {
-            auto& tensor_type = static_cast<const types::Tensor&>(oedge.base_type());
-            types::Pointer pointer_type(tensor_type.element_type());
-            builder.add_memlet(
-                *block, libnode, "Y", oedge.dst(), oedge.dst_conn(), oedge.subset(), pointer_type, oedge.debug_info()
-            );
-        }
-    }
+    auto oedges = dfg.out_edges_for_connector(this->einsum_node_, this->einsum_node_.output(0));
+    assert(oedges.size() == 1);
+    auto& oedge = *oedges.at(0);
+    auto& tensor_type = static_cast<const types::Tensor&>(oedge.base_type());
+    types::Pointer pointer_type(tensor_type.element_type());
+    auto* result_ptr = dfg.find_standalone_exit(&oedge);
+    assert(result_ptr);
+    auto& result_ptr_access = builder.add_access(*block, result_ptr->data(), result_ptr->debug_info());
+    builder.add_computational_memlet(
+        *block, result_ptr_access, libnode, "Y", {}, pointer_type, oedge.debug_info()
+    );
 
-    // Remove the old memlets
-    while (dfg.in_edges(this->einsum_node_).begin() != dfg.in_edges(this->einsum_node_).end()) {
-        auto& iedge = *dfg.in_edges(this->einsum_node_).begin();
-        builder.remove_memlet(*block, iedge);
-    }
-    while (dfg.out_edges(this->einsum_node_).begin() != dfg.out_edges(this->einsum_node_).end()) {
-        auto& oedge = *dfg.out_edges(this->einsum_node_).begin();
-        builder.remove_memlet(*block, oedge);
-    }
-
-    // Remove the einsum node
-    builder.remove_node(*block, this->einsum_node_);
+    // Remove the einsum node and all its edges and unused access-nodes at the ends of those edges
+    builder.clear_code_node_legacy(*block, this->einsum_node_);
 
     analysis_manager.invalidate_all();
 }

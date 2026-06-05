@@ -25,9 +25,11 @@ set(TEST_FILES
 add_executable(docc-qant-plugin_test ${TEST_FILES})
 target_link_libraries(docc-qant-plugin_test gtest_main docc-qant-plugin)
 target_include_directories(docc-qant-plugin_test PRIVATE ${CMAKE_CURRENT_SOURCE_DIR})
-get_filename_component(DOCC_PATHS_BIN ${CMAKE_CURRENT_BINARY_DIR}/../../3rdParty/docc ABSOLUTE)
-get_filename_component(DOCC_PATHS_SRC ${CMAKE_CURRENT_SOURCE_DIR}/../../3rdParty/docc ABSOLUTE)
 
+get_target_property(DOCC_CORE_BIN docc::core BINARY_DIR)
+get_target_property(DOCC_CORE_SRC docc::core SOURCE_DIR)
+get_filename_component(DOCC_PATHS_BIN ${DOCC_CORE_BIN}/.. ABSOLUTE)
+get_filename_component(DOCC_PATHS_SRC ${DOCC_CORE_SRC}/.. ABSOLUTE)
 
 target_compile_definitions(docc-qant-plugin_test PRIVATE
     DOCC_PATHS_BIN="${DOCC_PATHS_BIN}"
