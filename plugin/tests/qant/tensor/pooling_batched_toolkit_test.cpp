@@ -80,7 +80,7 @@ TEST(ToolkitPoolingBatchedBug, MaxPool2D_Batched) {
     const uint32_t npu_id = 0;
 
     DLManagedTensorVersioned* result =
-        qant_native_computing_toolkit::maxpool2d_fprop(npu_id, &tensor, kH, kW, padding, stride);
+        qant_native_computing_toolkit::ai::maxpool2d_fprop(npu_id, &tensor, kH, kW, padding, stride);
 
     ASSERT_NE(result, nullptr) << "maxpool2d_fprop returned nullptr for batched input (n_batches=2)";
 
@@ -140,7 +140,7 @@ TEST(ToolkitPoolingBatchedBug, AvgPool2D_Batched) {
     const uint32_t npu_id = 0;
 
     DLManagedTensorVersioned* result =
-        qant_native_computing_toolkit::avgpool2d_fprop(npu_id, &tensor, kH, kW, padding, stride, count_include_pad);
+        qant_native_computing_toolkit::ai::avgpool2d_fprop(npu_id, &tensor, kH, kW, padding, stride, count_include_pad);
 
     ASSERT_NE(result, nullptr) << "avgpool2d_fprop returned nullptr for batched input (n_batches=2)";
 

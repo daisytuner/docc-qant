@@ -64,7 +64,7 @@ jobs:
 
       - name: Install QANT toolkit
         run: |
-          apt-get install -y ./qant-native-computing-toolkit.2.1.0-1-amd64.deb
+          apt-get install -y ./qant-native-computing-toolkit.2.3.1-1-amd64.deb
 
       - name: Install DLPack headers
         run: |
@@ -128,7 +128,7 @@ jobs:
             nlohmann-json3-dev \
             libopenblas-dev
 
-          sudo apt install -y ./qant-native-computing-toolkit.2.1.0-1-amd64.deb
+          sudo apt install -y ./qant-native-computing-toolkit.2.3.1-1-amd64.deb
 
           cd /tmp
           wget -q https://github.com/dmlc/dlpack/archive/refs/tags/v1.2.tar.gz
@@ -199,7 +199,7 @@ jobs:
             nlohmann-json3-dev \
             libopenblas-dev
 
-          sudo apt install -y ./qant-native-computing-toolkit.2.1.0-1-amd64.deb
+          sudo apt install -y ./qant-native-computing-toolkit.2.3.1-1-amd64.deb
 
           cd /tmp
           wget -q https://github.com/dmlc/dlpack/archive/refs/tags/v1.2.tar.gz
@@ -310,7 +310,7 @@ jobs:
 
       - name: Install QANT toolkit
         run: |
-          apt-get install -y ./qant-native-computing-toolkit.2.1.0-1-amd64.deb
+          apt-get install -y ./qant-native-computing-toolkit.2.3.1-1-amd64.deb
 
       - name: Install DLPack headers
         run: |

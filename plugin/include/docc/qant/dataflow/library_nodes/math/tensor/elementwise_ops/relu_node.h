@@ -24,7 +24,7 @@ inline data_flow::LibraryNodeCode LibraryNodeType_QantReLU("ml::QantReLU");
  * @brief ReLU activation node for QANT backend
  *
  * QantReLUNode represents a ReLU activation operation that is executed on
- * the QANT accelerator using the qant_native_computing_toolkit::relu_fprop API.
+ * the QANT accelerator using the qant_native_computing_toolkit::ai::relu_fprop API.
  *
  * ## Input/Output Requirements
  * - Input connector "X": Input tensor of any shape

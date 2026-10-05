@@ -113,7 +113,7 @@ void GEMMNodeDispatcher_QANT::dispatch_code(
 
     // Call QANT linear_fprop
     stream << "// Call QANT linear_fprop: result = features @ weights^T" << std::endl;
-    stream << "DLManagedTensorVersioned* __qant_result = qant_native_computing_toolkit::linear_fprop(" << std::endl;
+    stream << "DLManagedTensorVersioned* __qant_result = qant_native_computing_toolkit::native::linear_fprop(" << std::endl;
     stream << "    __qant_npu_id," << std::endl;
     stream << "    &__qant_tensor_A," << std::endl;
     stream << "    &__qant_tensor_B" << std::endl;

@@ -251,7 +251,7 @@ void BatchnormNodeDispatcher_QANT::emit_error_check(sdfg::codegen::PrettyPrinter
 }
 
 void BatchnormNodeDispatcher_QANT::emit_toolkit_call(sdfg::codegen::PrettyPrinter& stream, std::string result_var) {
-    stream << "DLManagedTensorVersioned* " << result_var << " = qant_native_computing_toolkit::batchnorm2d_fprop("
+    stream << "DLManagedTensorVersioned* " << result_var << " = qant_native_computing_toolkit::ai::batchnorm2d_fprop("
            << std::endl;
     stream << "    __qant_npu_id," << std::endl;
     stream << "    &__qant_unbatched," << std::endl;

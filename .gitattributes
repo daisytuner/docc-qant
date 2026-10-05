@@ -1,1 +1,1 @@
-qant-native-computing-toolkit.2.1.0-1-amd64.deb filter=lfs diff=lfs merge=lfs -text
+qant-native-computing-toolkit.2.3.1-1-amd64.deb filter=lfs diff=lfs merge=lfs -text

@@ -179,7 +179,7 @@ void MatMulNodeDispatcher_QANT::dispatch_code(
     // Transposed B is always contiguous (N, K) with strides (K, 1)
     emit_dlpack_tensor_wrapper(stream, "__qant_tensor_B", b_raw_var, layout_b_linear, 2);
 
-    stream << "DLManagedTensorVersioned* __qant_result = qant_native_computing_toolkit::linear_fprop(" << std::endl;
+    stream << "DLManagedTensorVersioned* __qant_result = qant_native_computing_toolkit::native::linear_fprop(" << std::endl;
     stream << "    __qant_npu_id," << std::endl;
     stream << "    &__qant_tensor_A," << std::endl;
     stream << "    &__qant_tensor_B" << std::endl;

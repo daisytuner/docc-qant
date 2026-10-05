@@ -51,7 +51,7 @@ sudo cp -r include/dlpack /usr/local/include/
 
 You will also need the Q.ANT Native Computing Toolkit (proprietary):
 ```bash
-sudo apt install ./qant-native-computing-toolkit.2.1.0-1-amd64.deb
+sudo apt install ./qant-native-computing-toolkit.2.3.1-1-amd64.deb
 ```
 
 ## Building from Source

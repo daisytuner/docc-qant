@@ -185,7 +185,7 @@ void ConvNodeDispatcher_QANT::dispatch_code(
     emit_dlpack_tensor_wrapper_4d(stream, "__qant_tensor_W", w_bf16_var, c_out_expr, c_in_expr, kh_expr, kw_expr);
 
     // Call conv_fprop
-    stream << "DLManagedTensorVersioned* __qant_result = qant_native_computing_toolkit::conv_fprop(" << std::endl;
+    stream << "DLManagedTensorVersioned* __qant_result = qant_native_computing_toolkit::ai::conv_fprop(" << std::endl;
     stream << "    __qant_npu_id," << std::endl;
     stream << "    &__qant_tensor_X," << std::endl;
     stream << "    &__qant_tensor_W," << std::endl;

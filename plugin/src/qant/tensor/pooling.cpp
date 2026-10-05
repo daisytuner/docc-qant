@@ -163,7 +163,7 @@ void PoolingNodeDispatcher_QANT::dispatch_code(
     // Call pooling function based on mode
     stream << "DLManagedTensorVersioned* __qant_result = ";
     if (mode == math::tensor::PoolingMode::Max) {
-        stream << "qant_native_computing_toolkit::maxpool2d_fprop(" << std::endl;
+        stream << "qant_native_computing_toolkit::ai::maxpool2d_fprop(" << std::endl;
         stream << "    __qant_npu_id," << std::endl;
         stream << "    &__qant_tensor_X," << std::endl;
         stream << "    (size_t)(" << kh_expr << ")," << std::endl;
@@ -173,7 +173,7 @@ void PoolingNodeDispatcher_QANT::dispatch_code(
         stream << ");" << std::endl;
     } else {
         std::string count_include_pad = (mode == math::tensor::PoolingMode::Sum) ? "true" : "false";
-        stream << "qant_native_computing_toolkit::avgpool2d_fprop(" << std::endl;
+        stream << "qant_native_computing_toolkit::ai::avgpool2d_fprop(" << std::endl;
         stream << "    __qant_npu_id," << std::endl;
         stream << "    &__qant_tensor_X," << std::endl;
         stream << "    (size_t)(" << kh_expr << ")," << std::endl;

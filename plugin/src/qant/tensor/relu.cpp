@@ -15,7 +15,7 @@ ReLUNodeDispatcher_QANT::ReLUNodeDispatcher_QANT(
     : UnaryElementWiseBaseDispatcher(language_extension, function, data_flow_graph, node, node) {}
 
 void ReLUNodeDispatcher_QANT::emit_toolkit_call(sdfg::codegen::PrettyPrinter& stream) {
-    stream << "DLManagedTensorVersioned* __qant_result = qant_native_computing_toolkit::relu_fprop(" << std::endl;
+    stream << "DLManagedTensorVersioned* __qant_result = qant_native_computing_toolkit::ai::relu_fprop(" << std::endl;
     stream << "    __qant_npu_id," << std::endl;
     stream << "    &__qant_tensor_X" << std::endl;
     stream << ");" << std::endl;

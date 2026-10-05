@@ -34,7 +34,7 @@ jobs:
       - name: Install Dependencies
         run: |
           apt update
-          apt install -y ./qant-native-computing-toolkit.2.1.0-1-amd64.deb
+          apt install -y ./qant-native-computing-toolkit.2.3.1-1-amd64.deb
 
           cd /tmp
           wget -q https://github.com/dmlc/dlpack/archive/refs/tags/v1.2.tar.gz
@@ -98,7 +98,7 @@ jobs:
       - name: Install dependencies
         run: |
           apt update
-          apt install -y ./qant-native-computing-toolkit.2.1.0-1-amd64.deb libdlpack-dev libxtensor-blas-dev xtensor-dev
+          apt install -y ./qant-native-computing-toolkit.2.3.1-1-amd64.deb libdlpack-dev libxtensor-blas-dev xtensor-dev
 
           python -m pip install --upgrade pip
           pip install pybind11 pytest coverage black==25.9.0 build scikit-build-core
