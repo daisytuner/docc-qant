@@ -15,7 +15,8 @@ SigmoidNodeDispatcher_QANT::SigmoidNodeDispatcher_QANT(
     : UnaryElementWiseBaseDispatcher(language_extension, function, data_flow_graph, node, node) {}
 
 void SigmoidNodeDispatcher_QANT::emit_toolkit_call(sdfg::codegen::PrettyPrinter& stream) {
-    stream << "DLManagedTensorVersioned* __qant_result = qant_native_computing_toolkit::ai::sigmoid_fprop(" << std::endl;
+    stream << "DLManagedTensorVersioned* __qant_result = qant_native_computing_toolkit::ai::sigmoid_fprop("
+           << std::endl;
     stream << "    __qant_npu_id," << std::endl;
     stream << "    &__qant_tensor_X" << std::endl;
     stream << ");" << std::endl;
