@@ -82,7 +82,7 @@ before-all = [
   "ln -sf /usr/include/openblas/*.h /usr/include/",
   "git clone --depth 1 --branch v1.0 https://github.com/dmlc/dlpack.git /tmp/dlpack && cp -r /tmp/dlpack/include/dlpack /usr/include/",
   "cp {project}/api/qant_native_computing_toolkit*.h /usr/include/",
-  "cd /tmp && ar x {project}/qant-native-computing-toolkit.2.3.1-1-amd64.deb && tar -xaf data.tar.* -C / && ldconfig",
+  "cd /tmp && ar x {project}/qant-native-computing-toolkit.2.3.1-1-amd64.deb && zstd -dc data.tar.zst | tar -xf - -C / && ldconfig",
   "ln -sf /usr/lib/x86_64-linux-gnu/libqant_native_computing_toolkit.so.2.3.1 /usr/lib64/libqant_native_computing_toolkit.so",
   "ln -sf /usr/lib/x86_64-linux-gnu/libqant_native_computing_toolkit.so.2.3.1 /usr/lib64/libqant_native_computing_toolkit.so.2.3.1",
   "ldconfig",
