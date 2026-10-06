@@ -145,3 +145,19 @@ jobs:
           export LD_LIBRARY_PATH=/usr/local/lib:$LD_LIBRARY_PATH
           coverage run --source=python/docc -m pytest -v python/tests/mlir
           coverage xml
+
+      - name: Notebook Smoke Tests
+        if: matrix.python-version == '3.11' || matrix.python-version == '3.12' # requires docc.torch (torch-mlir), built in the MLIR Tests step
+        env:
+          MPLBACKEND: Agg # headless matplotlib backend, no display in CI
+        run: |
+          pip install nbconvert ipykernel matplotlib pillow requests
+
+          export LD_LIBRARY_PATH=/usr/local/lib:$LD_LIBRARY_PATH
+          for nb in demo/resnet_on_docc.ipynb demo/fasterrcnn_on_docc.ipynb; do
+            echo "::group::Executing $nb"
+            jupyter nbconvert --to notebook --execute \
+              --ExecutePreprocessor.timeout=1200 \
+              --output-dir /tmp "$nb"
+            echo "::endgroup::"
+          done
