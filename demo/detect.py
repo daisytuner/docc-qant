@@ -28,14 +28,12 @@ FRAMES_DIR.mkdir(exist_ok=True)
 
 CONFIDENCE_THRESHOLD = 0.5
 
-docc.torch.set_backend_options(target=TARGET, category="server")
-
 if __name__ == "__main__":
     # Load the pre-trained Faster R-CNN model
     faster_rcnn = models.detection.fasterrcnn_resnet50_fpn(weights=models.detection.FasterRCNN_ResNet50_FPN_Weights.COCO_V1)
     faster_rcnn.eval()
 
-    compiled_backbone = torch.compile(faster_rcnn.backbone, backend="docc")
+    compiled_backbone = torch.compile(faster_rcnn.backbone, backend="docc", options={"target": TARGET, "category": "server"})
     faster_rcnn.backbone = compiled_backbone
 
     # Open video
