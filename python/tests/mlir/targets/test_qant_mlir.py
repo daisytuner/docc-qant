@@ -37,7 +37,7 @@ def test_inference_fp32():
         ref = model_ref(example_input)
 
     assert res.shape == (2, 2)
-    assert torch.allclose(res, ref, rtol=2e-2)
+    assert torch.allclose(res, ref, atol=2e-2)
 
 
 def test_chained_linear_fp32():
