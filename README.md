@@ -49,7 +49,7 @@ cd dlpack-1.2
 sudo cp -r include/dlpack /usr/local/include/
 ```
 
-You will also need the Q.ANT Native Computing Toolkit (proprietary):
+You will also need version v2.3.1 of the Q.ANT Native Computing Toolkit. This can be downloaded from [GitHub](https://github.com/Q-ANT-GmbH/qant_native_computing_toolkit):
 ```bash
 sudo apt install ./qant-native-computing-toolkit.2.3.1-1-amd64.deb
 ```
